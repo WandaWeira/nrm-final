@@ -15,13 +15,9 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "municipalityId",
       as: "municipality",
     });
-    Division.hasMany(models.Municipality, {
+    Division.hasMany(models.Ward, {
       foreignKey: "divisionId",
-      as: "municipalities",
-    });
-    Division.hasMany(models.Election, {
-      foreignKey: "divisionId",
-      as: "elections",
+      as: "wards",
     });
   };
 

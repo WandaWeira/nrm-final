@@ -11,17 +11,13 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Ward.associate = (models) => {
-    Ward.belongsTo(models.Municipality, {
-      foreignKey: "municipalityId",
-      as: "municipality",
+    Ward.belongsTo(models.Division, {
+      foreignKey: "divisionId",
+      as: "division",
     });
     Ward.hasMany(models.Cell, {
       foreignKey: "wardId",
       as: "cells",
-    });
-    Ward.hasMany(models.Election, {
-      foreignKey: "wardId",
-      as: "elections",
     });
   };
 

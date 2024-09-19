@@ -16,17 +16,17 @@ module.exports = (sequelize, DataTypes) => {
       as: "subregion",
     });
 
-    if (this.hasCity) {
-      District.hasMany(models.Municipality, {
-        foreignKey: "districtId",
-        as: "municipalities",
-      });
-    } else {
-      District.hasMany(models.Constituency, {
-        foreignKey: "districtId",
-        as: "constituencies",
-      });
-    }
+    // City Structure: District -> Municipalities -> Divisions -> Wards -> Cells
+    District.hasMany(models.Municipality, {
+      foreignKey: "districtId",
+      as: "municipalities",
+    });
+
+    // Non-City Structure: District -> Constituencies
+    District.hasMany(models.Constituency, {
+      foreignKey: "districtId",
+      as: "constituencies",
+    });
   };
 
   return District;

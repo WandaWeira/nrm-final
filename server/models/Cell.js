@@ -1,4 +1,3 @@
-
 module.exports = (sequelize, DataTypes) => {
   const Cell = sequelize.define("Cell", {
     name: {
@@ -15,10 +14,6 @@ module.exports = (sequelize, DataTypes) => {
     Cell.belongsTo(models.Ward, {
       foreignKey: 'wardId',
       as: 'ward'
-    });
-    Cell.hasMany(models.Election, {
-      foreignKey: 'cellId',
-      as: 'elections'
     });
   };
 

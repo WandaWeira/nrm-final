@@ -17,9 +17,9 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     if (this.hasCity) {
-      District.hasMany(models.Division, {
+      District.hasMany(models.Municipality, {
         foreignKey: "districtId",
-        as: "divisions",
+        as: "municipalities",
       });
     } else {
       District.hasMany(models.Constituency, {

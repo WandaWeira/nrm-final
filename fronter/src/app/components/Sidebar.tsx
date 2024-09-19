@@ -153,10 +153,10 @@ const Sidebar = () => {
     "Regions",
     "Subregions",
     "Districts",
-    "Constituencies/Municipalities",
-    "Subcounties/Divisions",
-    "Parishes/Wards",
-    "Villages/Cells",
+    "Constituencies-Municipalities",
+    "Subcounties-Divisions",
+    "Parishes-Wards",
+    "Villages-Cells",
   ];
 
   // Electoral Positions

@@ -11,9 +11,9 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Division.associate = (models) => {
-    Division.belongsTo(models.District, {
-      foreignKey: "districtId",
-      as: "district",
+    Division.belongsTo(models.Municipality, {
+      foreignKey: "municipalityId",
+      as: "municipality",
     });
     Division.hasMany(models.Municipality, {
       foreignKey: "divisionId",

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { District, Constituency, Division } = require("../models");
+const { DistrictRegistra } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
 // Get all districts
@@ -34,6 +35,7 @@ router.post(
   checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
   async (req, res) => {
     try {
+      console.log(req.body)
       const district = await District.create({
         ...req.body,
         status: req.user.role === "SuperAdmin" ? "approved" : "pending",
@@ -171,4 +173,71 @@ router.post("/:districtId/divisions", authMiddleware, checkPermission("SuperAdmi
   }
 });
 
+
+
+// Changes 20/09/2024   - STARTS  --------------------------------------------
+
+// Get all registrars for a district
+router.get("/:districtId/registrars", authMiddleware, checkPermission("PEO"), async (req, res) => {
+  try {
+    const registrars = await DistrictRegistra.findAll({ where: { districtId: req.params.districtId } });
+    res.json(registrars);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create a new registrar for a district
+router.post("/:districtId/registrars", authMiddleware, checkPermission(["SuperAdmin", "RegionalCoordinator"]), async (req, res) => {
+  try {
+    const registrar = await DistrictRegistra.create({
+      ...req.body,
+      districtId: req.params.districtId,
+      createdBy: req.user.id,
+    });
+    res.status(201).json(registrar);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update a registrar
+router.put("/:districtId/registrars/:id", authMiddleware, checkPermission(["SuperAdmin", "RegionalCoordinator"]), async (req, res) => {
+  try {
+    const registrar = await DistrictRegistra.findOne({
+      where: { id: req.params.id, districtId: req.params.districtId },
+    });
+    if (registrar) {
+      await registrar.update({
+        ...req.body,
+        updatedBy: req.user.id,
+      });
+      res.json(registrar);
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete a registrar
+router.delete("/:districtId/registrars/:id", authMiddleware, checkPermission(["SuperAdmin", "RegionalCoordinator"]), async (req, res) => {
+  try {
+    const registrar = await DistrictRegistra.findOne({
+      where: { id: req.params.id, districtId: req.params.districtId },
+    });
+    if (registrar) {
+      await registrar.destroy();
+      res.json({ message: "Registrar deleted" });
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// Changes 20/09/2024      - END  --------------------------------------------
 module.exports = router;

@@ -1,16 +1,25 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   useGetDistrictsQuery,
-  useCreateDistrictMutation,
-  useUpdateDistrictMutation,
-  useDeleteDistrictMutation,
-  useGetDistrictRegistrasQuery,
-  useCreateDistrictRegistraMutation,
-  useUpdateDistrictRegistraMutation,
-  useDeleteDistrictRegistraMutation,
+  useGetConstituenciesQuery,
+  useGetMunicipalitiesQuery,
+  useCreateConstituencyMutation,
+  useUpdateConstituencyMutation,
+  useDeleteConstituencyMutation,
+  useCreateMunicipalityMutation,
+  useUpdateMunicipalityMutation,
+  useDeleteMunicipalityMutation,
   useGetSubregionsQuery,
   useGetRegionsQuery,
+  useGetConstituencyRegistrasQuery,
+  useCreateConstituencyRegistraMutation,
+  useUpdateConstituencyRegistraMutation,
+  useDeleteConstituencyRegistraMutation,
+  useGetMunicipalityRegistrasQuery,
+  useCreateMunicipalityRegistraMutation,
+  useUpdateMunicipalityRegistraMutation,
+  useDeleteMunicipalityRegistraMutation,
 } from "@/state/api";
 import { Edit, Trash, Plus } from "lucide-react";
 
@@ -24,7 +33,7 @@ interface DistrictModel {
 interface SubregionModel {
   id: number;
   name: string;
-  regionId: number; // Assuming subregions have a reference to regions
+  regionId: number;
 }
 
 interface RegionModel {
@@ -32,7 +41,13 @@ interface RegionModel {
   name: string;
 }
 
-interface DistrictRegistra {
+interface ConstituencyMunicipalityModel {
+  id: number;
+  name: string;
+  districtId: number;
+}
+
+interface Registra {
   id: number;
   firstName: string;
   lastName: string;
@@ -42,40 +57,72 @@ interface DistrictRegistra {
   isActive: boolean;
 }
 
-const DistrictsPage: React.FC = () => {
+const ConstituenciesMunicipalitiesPage: React.FC = () => {
   const {
     data: districts,
-    isLoading,
-    isError,
-    refetch,
+    isLoading: isLoadingDistricts,
+    isError: isErrorDistricts,
   } = useGetDistrictsQuery();
+  const { data: constituencies, refetch: refetchConstituencies } =
+    useGetConstituenciesQuery();
+  const { data: municipalities, refetch: refetchMunicipalities } =
+    useGetMunicipalitiesQuery();
   const { data: subregions } = useGetSubregionsQuery();
-  const { data: regions } = useGetRegionsQuery(); // Fetch regions
-  const [createDistrict] = useCreateDistrictMutation();
-  const [updateDistrict] = useUpdateDistrictMutation();
-  const [deleteDistrict] = useDeleteDistrictMutation();
+  const { data: regions } = useGetRegionsQuery();
 
-  const [createDistrictRegistra] = useCreateDistrictRegistraMutation();
-  const [updateDistrictRegistra] = useUpdateDistrictRegistraMutation();
-  const [deleteDistrictRegistra] = useDeleteDistrictRegistraMutation();
+  const [createConstituency] = useCreateConstituencyMutation();
+  const [updateConstituency] = useUpdateConstituencyMutation();
+  const [deleteConstituency] = useDeleteConstituencyMutation();
+  const [createMunicipality] = useCreateMunicipalityMutation();
+  const [updateMunicipality] = useUpdateMunicipalityMutation();
+  const [deleteMunicipality] = useDeleteMunicipalityMutation();
+
+  const [createConstituencyRegistra] = useCreateConstituencyRegistraMutation();
+  const [updateConstituencyRegistra] = useUpdateConstituencyRegistraMutation();
+  const [deleteConstituencyRegistra] = useDeleteConstituencyRegistraMutation();
+  const [createMunicipalityRegistra] = useCreateMunicipalityRegistraMutation();
+  const [updateMunicipalityRegistra] = useUpdateMunicipalityRegistraMutation();
+  const [deleteMunicipalityRegistra] = useDeleteMunicipalityRegistraMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRegistraModalOpen, setIsRegistraModalOpen] = useState(false);
-  const [editingDistrict, setEditingDistrict] = useState<DistrictModel | null>(
+  const [editingItem, setEditingItem] =
+    useState<ConstituencyMunicipalityModel | null>(null);
+  const [newItem, setNewItem] = useState<
+    Partial<ConstituencyMunicipalityModel>
+  >({});
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedRegistra, setSelectedRegistra] = useState<Registra | null>(
     null
   );
-  const [newDistrict, setNewDistrict] = useState<Partial<DistrictModel>>({});
-  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(
-    null
-  );
-  const [selectedRegistra, setSelectedRegistra] =
-    useState<DistrictRegistra | null>(null);
-  const [newRegistra, setNewRegistra] = useState<Partial<DistrictRegistra>>({});
+  const [newRegistra, setNewRegistra] = useState<Partial<Registra>>({});
 
-  const { data: districtRegistras } = useGetDistrictRegistrasQuery(
-    selectedDistrictId || 0,
+  // const { data: constituencyRegistras } = useGetConstituencyRegistrasQuery(
+  //   selectedId || 0,
+  //   {
+  //     skip: !selectedId || districts?.find((d) => d.id === selectedId)?.hasCity,
+  //   }
+  // );
+
+  // const { data: municipalityRegistras } = useGetMunicipalityRegistrasQuery(
+  //   selectedId || 0,
+  //   {
+  //     skip:
+  //       !selectedId || !districts?.find((d) => d.id === selectedId)?.hasCity,
+  //   }
+  // );
+
+  const { data: constituencyRegistras, refetch: refetchConstituencyRegistras } = useGetConstituencyRegistrasQuery(
+    selectedId || 0,
     {
-      skip: !selectedDistrictId,
+      skip: !selectedId || districts?.find((d) => d.id === selectedId)?.hasCity,
+    }
+  );
+
+  const { data: municipalityRegistras, refetch: refetchMunicipalityRegistras } = useGetMunicipalityRegistrasQuery(
+    selectedId || 0,
+    {
+      skip: !selectedId || !districts?.find((d) => d.id === selectedId)?.hasCity,
     }
   );
 
@@ -96,100 +143,157 @@ const DistrictsPage: React.FC = () => {
     );
   }, [regions]);
 
-  const handleAddDistrict = async () => {
-    try {
-      await createDistrict(newDistrict as DistrictModel).unwrap();
-      setIsModalOpen(false);
-      setNewDistrict({});
-      refetch();
-    } catch (error) {
-      console.error("Error adding district:", error);
-    }
-  };
-
-  const handleUpdateDistrict = async () => {
-    if (editingDistrict) {
-      const updatedDistrict = { ...editingDistrict, ...newDistrict };
+  const handleAddItem = async () => {
+    if (selectedId) {
       try {
-        await updateDistrict({
-          id: updatedDistrict.id,
-          updates: updatedDistrict,
-        }).unwrap();
+        const district = districts?.find((d) => d.id === selectedId);
+        if (district?.hasCity) {
+          await createMunicipality({
+            ...(newItem as ConstituencyMunicipalityModel),
+            districtId: selectedId,
+          }).unwrap();
+        } else {
+          await createConstituency({
+            ...(newItem as ConstituencyMunicipalityModel),
+            districtId: selectedId,
+          }).unwrap();
+        }
         setIsModalOpen(false);
-        setEditingDistrict(null);
-        refetch();
+        setNewItem({});
+        setSelectedId(null);
+        refetchConstituencies();
+        refetchMunicipalities();
       } catch (error) {
-        console.error("Error updating district:", error);
+        console.error("Error adding item:", error);
       }
     }
   };
 
-  const handleDeleteDistrict = async (districtId: number) => {
+  const handleUpdateItem = async () => {
+    if (editingItem) {
+      try {
+        const district = districts?.find(
+          (d) => d.id === editingItem.districtId
+        );
+        if (district?.hasCity) {
+          await updateMunicipality({
+            id: editingItem.id,
+            updates: newItem as ConstituencyMunicipalityModel,
+          }).unwrap();
+        } else {
+          await updateConstituency({
+            id: editingItem.id,
+            updates: newItem as ConstituencyMunicipalityModel,
+          }).unwrap();
+        }
+        setIsModalOpen(false);
+        setEditingItem(null);
+        refetchConstituencies();
+        refetchMunicipalities();
+      } catch (error) {
+        console.error("Error updating item:", error);
+      }
+    }
+  };
+
+  const handleDeleteItem = async (item: ConstituencyMunicipalityModel) => {
     try {
-      await deleteDistrict(districtId).unwrap();
-      refetch();
+      const district = districts?.find((d) => d.id === item.districtId);
+      if (district?.hasCity) {
+        await deleteMunicipality(item.id).unwrap();
+      } else {
+        await deleteConstituency(item.id).unwrap();
+      }
+      refetchConstituencies();
+      refetchMunicipalities();
     } catch (error) {
-      console.error("Error deleting district:", error);
+      console.error("Error deleting item:", error);
     }
   };
 
-  const handleAddDistrictRegistra = async () => {
-    if (selectedDistrictId && newRegistra) {
-        console.log("newRegistra",newRegistra)
+  const handleAddRegistra = async () => {
+    if (selectedId && newRegistra) {
       try {
-        await createDistrictRegistra({
-          districtId: selectedDistrictId,
-          registra: newRegistra as DistrictRegistra,
-        }).unwrap();
+        const district = districts?.find((d) => d.id === selectedId);
+        if (district?.hasCity) {
+          await createMunicipalityRegistra({
+            municipalityId: selectedId,
+            registra: newRegistra as Registra,
+          }).unwrap();
+        } else {
+          await createConstituencyRegistra({
+            constituencyId: selectedId,
+            registra: newRegistra as Registra,
+          }).unwrap();
+        }
         setIsRegistraModalOpen(false);
         setNewRegistra({});
-        setSelectedDistrictId(null);
+        setSelectedId(null);
       } catch (error) {
-        console.error("Error adding district registra:", error);
+        console.error("Error adding registra:", error);
       }
     }
   };
 
-  const handleUpdateDistrictRegistra = async () => {
-    if (selectedRegistra && selectedDistrictId) {
+  const handleUpdateRegistra = async () => {
+    if (selectedRegistra && selectedId) {
       try {
-        await updateDistrictRegistra({
-          districtId: selectedDistrictId,
-          id: selectedRegistra.id,
-          updates: newRegistra as DistrictRegistra,
-        }).unwrap();
+        const district = districts?.find((d) => d.id === selectedId);
+        if (district?.hasCity) {
+          await updateMunicipalityRegistra({
+            municipalityId: selectedId,
+            id: selectedRegistra.id,
+            updates: newRegistra as Registra,
+          }).unwrap();
+        } else {
+          await updateConstituencyRegistra({
+            constituencyId: selectedId,
+            id: selectedRegistra.id,
+            updates: newRegistra as Registra,
+          }).unwrap();
+        }
         setIsRegistraModalOpen(false);
         setSelectedRegistra(null);
         setNewRegistra({});
       } catch (error) {
-        console.error("Error updating district registra:", error);
+        console.error("Error updating registra:", error);
       }
     }
   };
 
-  const handleDeleteDistrictRegistra = async (registraId: number) => {
-    if (selectedDistrictId) {
+  const handleDeleteRegistra = async (registraId: number) => {
+    if (selectedId) {
       try {
-        await deleteDistrictRegistra({
-          districtId: selectedDistrictId,
-          id: registraId,
-        }).unwrap();
+        const district = districts?.find((d) => d.id === selectedId);
+        if (district?.hasCity) {
+          await deleteMunicipalityRegistra({
+            municipalityId: selectedId,
+            id: registraId,
+          }).unwrap();
+        } else {
+          await deleteConstituencyRegistra({
+            constituencyId: selectedId,
+            id: registraId,
+          }).unwrap();
+        }
         setSelectedRegistra(null);
       } catch (error) {
-        console.error("Error deleting district registra:", error);
+        console.error("Error deleting registra:", error);
       }
     }
   };
 
-  const openAddDistrictModal = () => {
-    setEditingDistrict(null);
-    setNewDistrict({});
+  const openAddModal = () => {
+    setEditingItem(null);
+    setNewItem({});
+    setSelectedId(null);
     setIsModalOpen(true);
   };
 
-  const openEditDistrictModal = (district: DistrictModel) => {
-    setEditingDistrict(district);
-    setNewDistrict(district);
+  const openEditModal = (item: ConstituencyMunicipalityModel) => {
+    setEditingItem(item);
+    setNewItem(item);
+    setSelectedId(item.districtId);
     setIsModalOpen(true);
   };
 
@@ -199,82 +303,179 @@ const DistrictsPage: React.FC = () => {
     setIsRegistraModalOpen(true);
   };
 
-  const openEditRegistraModal = (registra: DistrictRegistra) => {
+  const openEditRegistraModal = (registra: Registra) => {
     setSelectedRegistra(registra);
     setNewRegistra(registra);
     setIsRegistraModalOpen(true);
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError) return <div>Error loading districts</div>;
+  // Changes 20/09/2024   -   STARTS  --------------------------------------------
+  // Add this useEffect to fetch registrars when a municipality or constituency is selected
+
+  useEffect(() => {
+    if (selectedId) {
+      const district = districts?.find((d) => d.id === selectedId);
+      if (district?.hasCity) {
+        // Fetch municipality registrars
+        refetchMunicipalityRegistras();
+      } else {
+        // Fetch constituency registrars
+        refetchConstituencyRegistras();
+      }
+    }
+  }, [selectedId, districts]);
+
+  // Update handleEditRegistra function
+  const handleEditRegistra = (registra: Registra) => {
+    setSelectedRegistra(registra);
+    setNewRegistra(registra);
+    setIsRegistraModalOpen(true);
+  };
+
+  // Update handleDeleteRegistra function
+
+  // Changes 20/09/2024   -   END  --------------------------------------------
+
+  if (isLoadingDistricts) return <div>Loading...</div>;
+  if (isErrorDistricts) return <div>Error loading data</div>;
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold mb-4">Districts</h1>
+        <h1 className="text-2xl font-bold mb-4">
+          Constituencies and Municipalities
+        </h1>
         <button
-          onClick={openAddDistrictModal}
+          onClick={openAddModal}
           className="mb-4 bg-yellow-500 text-white px-4 py-2 rounded flex items-center"
         >
-          <Plus className="mr-2 h-4 w-4" /> Add New District
+          <Plus className="mr-2 h-4 w-4" /> Add New
         </button>
       </div>
 
+      <h2 className="text-xl font-semibold mt-8 mb-4">Constituencies</h2>
       <table className="min-w-full bg-white mb-8">
         <thead>
           <tr>
             <th className="px-4 py-2">ID</th>
             <th className="px-4 py-2">Name</th>
+            <th className="px-4 py-2">District</th>
             <th className="px-4 py-2">Region</th>
             <th className="px-4 py-2">Subregion</th>
-            <th className="px-4 py-2">Has City</th>
             <th className="px-4 py-2">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {districts?.map((district: DistrictModel) => {
-            const subregion = subregions?.find(
-              (subregion) => subregion.id === district.subregionId
-            );
-            const regionName = subregion
-              ? regionMap.get(subregion.regionId)
-              : "N/A";
+          {constituencies?.map(
+            (constituency: ConstituencyMunicipalityModel) => {
+              const district = districts?.find(
+                (d) => d.id === constituency.districtId
+              );
+              const subregion = subregions?.find(
+                (s) => s.id === district?.subregionId
+              );
+              const regionName = subregion
+                ? regionMap.get(subregion.regionId)
+                : "N/A";
 
-            return (
-              <tr key={district.id}>
-                <td className="border px-4 py-2">{district.id}</td>
-                <td className="border px-4 py-2">{district.name}</td>
-                <td className="border px-4 py-2">{regionName}</td>
-                <td className="border px-4 py-2">
-                  {subregion ? subregion.name : "N/A"}
-                </td>
-                <td className="border px-4 py-2">
-                  {district.hasCity ? "Yes" : "No"}
-                </td>
-                <td className="border px-4 py-2">
-                  <button
-                    onClick={() => openEditDistrictModal(district)}
-                    className="mr-2"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button onClick={() => handleDeleteDistrict(district.id)}>
-                    <Trash size={16} />
-                  </button>
+              return (
+                <tr key={constituency.id}>
+                  <td className="border px-4 py-2">{constituency.id}</td>
+                  <td className="border px-4 py-2">{constituency.name}</td>
+                  <td className="border px-4 py-2">
+                    {district?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">{regionName}</td>
+                  <td className="border px-4 py-2">
+                    {subregion?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">
+                    <button
+                      onClick={() => openEditModal(constituency)}
+                      className="mr-2"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => handleDeleteItem(constituency)}>
+                      <Trash size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedId(constituency.id);
+                        openAddRegistraModal();
+                      }}
+                      className="ml-2 text-blue-500"
+                    >
+                      View Registra
+                    </button>
+                  </td>
+                </tr>
+              );
+            }
+          )}
+        </tbody>
+      </table>
 
-                  <button
-                    onClick={() => {
-                      setSelectedDistrictId(district.id);
-                      openAddRegistraModal();
-                    }}
-                    className="ml-2 text-blue-500"
-                  >
-                    View Registra
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+      <h2 className="text-xl font-semibold mt-8 mb-4">Municipalities</h2>
+      <table className="min-w-full bg-white mb-8">
+        <thead>
+          <tr>
+            <th className="px-4 py-2">ID</th>
+            <th className="px-4 py-2">Name</th>
+            <th className="px-4 py-2">District</th>
+            <th className="px-4 py-2">Region</th>
+            <th className="px-4 py-2">Subregion</th>
+            <th className="px-4 py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {municipalities?.map(
+            (municipality: ConstituencyMunicipalityModel) => {
+              const district = districts?.find(
+                (d) => d.id === municipality.districtId
+              );
+              const subregion = subregions?.find(
+                (s) => s.id === district?.subregionId
+              );
+              const regionName = subregion
+                ? regionMap.get(subregion.regionId)
+                : "N/A";
+
+              return (
+                <tr key={municipality.id}>
+                  <td className="border px-4 py-2">{municipality.id}</td>
+                  <td className="border px-4 py-2">{municipality.name}</td>
+                  <td className="border px-4 py-2">
+                    {district?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">{regionName}</td>
+                  <td className="border px-4 py-2">
+                    {subregion?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">
+                    <button
+                      onClick={() => openEditModal(municipality)}
+                      className="mr-2"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => handleDeleteItem(municipality)}>
+                      <Trash size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedId(municipality.id);
+                        openAddRegistraModal();
+                      }}
+                      className="ml-2 text-blue-500"
+                    >
+                      View Registra
+                    </button>
+                  </td>
+                </tr>
+              );
+            }
+          )}
         </tbody>
       </table>
 
@@ -282,61 +483,44 @@ const DistrictsPage: React.FC = () => {
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-lg">
             <h2 className="text-xl font-semibold mb-4">
-              {editingDistrict ? "Edit District" : "Add District"}
+              {editingItem ? "Edit" : "Add"}{" "}
+              {selectedId &&
+              districts?.find((d) => d.id === selectedId)?.hasCity
+                ? "Municipality"
+                : "Constituency"}
             </h2>
-            {/* Form fields for adding/updating a district */}
             <div>
               <label>
                 Name:
                 <input
                   type="text"
-                  value={newDistrict.name || ""}
+                  value={newItem.name || ""}
                   onChange={(e) =>
-                    setNewDistrict({ ...newDistrict, name: e.target.value })
+                    setNewItem({ ...newItem, name: e.target.value })
                   }
                   className="border px-2 py-1 w-full"
                 />
               </label>
               <label>
-                Subregion:
+                District:
                 <select
-                  value={newDistrict.subregionId || ""}
-                  onChange={(e) =>
-                    setNewDistrict({
-                      ...newDistrict,
-                      subregionId: Number(e.target.value),
-                    })
-                  }
+                  value={selectedId || ""}
+                  onChange={(e) => setSelectedId(Number(e.target.value))}
                   className="border px-2 py-1 w-full"
+                  disabled={!!editingItem}
                 >
-                  <option value="">Select Subregion</option>
-                  {subregions?.map((subregion) => (
-                    <option key={subregion.id} value={subregion.id}>
-                      {subregion.name}
+                  <option value="">Select District</option>
+                  {districts?.map((district) => (
+                    <option key={district.id} value={district.id}>
+                      {district.name}
                     </option>
                   ))}
                 </select>
               </label>
-              <label>
-                Has City:
-                <input
-                  type="checkbox"
-                  checked={newDistrict.hasCity || false}
-                  onChange={(e) =>
-                    setNewDistrict({
-                      ...newDistrict,
-                      hasCity: e.target.checked,
-                    })
-                  }
-                  className="ml-2"
-                />
-              </label>
             </div>
             <div className="mt-4">
               <button
-                onClick={
-                  editingDistrict ? handleUpdateDistrict : handleAddDistrict
-                }
+                onClick={editingItem ? handleUpdateItem : handleAddItem}
                 className="bg-green-500 text-white px-4 py-2 rounded"
               >
                 Save
@@ -354,12 +538,81 @@ const DistrictsPage: React.FC = () => {
 
       {isRegistraModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-4 rounded shadow-lg w-1/3">
-            <h2 className="text-xl font-bold mb-4">
-              {selectedRegistra
-                ? "Edit District Registra"
-                : "Add District Registra"}
+          <div className="bg-white p-4 rounded shadow-lg w-2/3 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">
+              {(() => {
+                const district = districts?.find((d) => d.id === selectedId);
+                if (district?.hasCity) {
+                  const municipality = municipalities?.find(
+                    (m) => m.id === selectedId
+                  );
+                  return municipality
+                    ? `${municipality.name} Registrars`
+                    : "Municipality Registrars";
+                } else {
+                  const constituency = constituencies?.find(
+                    (c) => c.id === selectedId
+                  );
+                  return constituency
+                    ? `${constituency.name} Registrars`
+                    : "Constituency Registrars";
+                }
+              })()}
             </h2>
+
+            {/* Table of existing registrars */}
+            <div className="mb-6">
+              <table className="min-w-full bg-white">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left">Name</th>
+                    <th className="px-4 py-2 text-left">Email</th>
+                    <th className="px-4 py-2 text-left">Phone Number</th>
+                    <th className="px-4 py-2 text-left">NIN Number</th>
+                    <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(districts?.find((d) => d.id === selectedId)?.hasCity
+                    ? municipalityRegistras
+                    : constituencyRegistras
+                  )?.map((registrar) => (
+                    <tr key={registrar.id}>
+                      <td className="border px-4 py-2">{`${registrar.firstName} ${registrar.lastName}`}</td>
+                      <td className="border px-4 py-2">{registrar.email}</td>
+                      <td className="border px-4 py-2">
+                        {registrar.phoneNumber}
+                      </td>
+                      <td className="border px-4 py-2">
+                        {registrar.ninNumber}
+                      </td>
+                      <td className="border px-4 py-2">
+                        {registrar.isActive ? "Active" : "Inactive"}
+                      </td>
+                      <td className="border px-4 py-2">
+                        <button
+                          onClick={() => handleEditRegistra(registrar)}
+                          className="mr-2 text-blue-500 hover:text-blue-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRegistra(registrar.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-xl font-bold mb-4">
+              {selectedRegistra ? "Edit Registra" : "Add New Registra"}
+            </h3>
             <input
               type="text"
               placeholder="First Name"
@@ -434,22 +687,26 @@ const DistrictsPage: React.FC = () => {
               />
               <span className="ml-2">Active</span>
             </label>
-            <button
-              onClick={
-                selectedRegistra
-                  ? handleUpdateDistrictRegistra
-                  : handleAddDistrictRegistra
-              }
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              {selectedRegistra ? "Update Registra" : "Add Registra"}
-            </button>
-            <button
-              onClick={() => setIsRegistraModalOpen(false)}
-              className="ml-2 bg-gray-500 text-white px-4 py-2 rounded"
-            >
-              Cancel
-            </button>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={
+                  selectedRegistra ? handleUpdateRegistra : handleAddRegistra
+                }
+                className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+              >
+                {selectedRegistra ? "Update Registra" : "Add Registra"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsRegistraModalOpen(false);
+                  setSelectedRegistra(null);
+                  setNewRegistra({});
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -457,4 +714,4 @@ const DistrictsPage: React.FC = () => {
   );
 };
 
-export default DistrictsPage;
+export default ConstituenciesMunicipalitiesPage;

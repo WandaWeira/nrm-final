@@ -98,7 +98,11 @@ const DistrictsPage: React.FC = () => {
 
   const handleAddDistrict = async () => {
     try {
-      await createDistrict(newDistrict as DistrictModel).unwrap();
+      const districtToCreate = {
+        ...newDistrict,
+        hasCity: newDistrict.hasCity || false, // Ensure hasCity is always included
+      };
+      await createDistrict(districtToCreate).unwrap();
       setIsModalOpen(false);
       setNewDistrict({});
       refetch();
@@ -109,7 +113,11 @@ const DistrictsPage: React.FC = () => {
 
   const handleUpdateDistrict = async () => {
     if (editingDistrict) {
-      const updatedDistrict = { ...editingDistrict, ...newDistrict };
+      const updatedDistrict = {
+        ...editingDistrict,
+        ...newDistrict,
+        hasCity: newDistrict.hasCity || false, // Ensure hasCity is always included
+      };
       try {
         await updateDistrict({
           id: updatedDistrict.id,
@@ -135,7 +143,7 @@ const DistrictsPage: React.FC = () => {
 
   const handleAddDistrictRegistra = async () => {
     if (selectedDistrictId && newRegistra) {
-        console.log("newRegistra",newRegistra)
+      console.log("newRegistra", newRegistra);
       try {
         await createDistrictRegistra({
           districtId: selectedDistrictId,
@@ -183,7 +191,7 @@ const DistrictsPage: React.FC = () => {
 
   const openAddDistrictModal = () => {
     setEditingDistrict(null);
-    setNewDistrict({});
+    setNewDistrict({ hasCity: false });
     setIsModalOpen(true);
   };
 

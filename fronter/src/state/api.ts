@@ -55,6 +55,50 @@ export interface User {
   // updatedAt?: string; // Optional
 }
 
+// 19/09/2024-----------------------START
+export interface ConstituencyModel extends UnitModel {
+  districtId: number;
+  nrmRegistra: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    ninNumber: string;
+    isActive: boolean;
+  };
+}
+
+export interface MunicipalityModel extends UnitModel {
+  districtId: number;
+  nrmRegistra: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    ninNumber: string;
+    isActive: boolean;
+  };
+}
+
+export interface Registra {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  ninNumber: string;
+  isActive: boolean;
+}
+
+export interface ConstituencyRegistra extends Registra {
+  constituencyId: number;
+}
+
+export interface MunicipalityRegistra extends Registra {
+  municipalityId: number;
+}
+// 19/09/2024-----------------------END
+
 
 
 // Define the API
@@ -76,7 +120,8 @@ export const api = createApi({
   tagTypes: [
     'Regions', 'Subregions', 'Districts', 'Constituencies', 'Subcounties', 
     'Parishes', 'Villages', 'Divisions', 'Municipalities', 'Wards', 
-    'Cells', 'Cities', 'Users'
+    'Cells', 'Cities', 'Users', 'ConstituencyRegistrars',
+    'MunicipalityRegistrars'
   ],
   endpoints: (build) => ({
     // Authentication
@@ -233,6 +278,113 @@ export const api = createApi({
       }),
     }),
 
+    // 19/09/2024-----------------------START
+    createConstituency: build.mutation<ConstituencyModel, Partial<ConstituencyModel>>({
+      query: (newConstituency) => ({
+        url: '/constituencies',
+        method: 'POST',
+        body: newConstituency,
+      }),
+      invalidatesTags: ['Constituencies'],
+    }),
+    updateConstituency: build.mutation<ConstituencyModel, { id: number; updates: Partial<ConstituencyModel> }>({
+      query: ({ id, updates }) => ({
+        url: `/constituencies/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['Constituencies'],
+    }),
+    deleteConstituency: build.mutation<void, number>({
+      query: (id) => ({
+        url: `/constituencies/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Constituencies'],
+    }),
+    getConstituencyRegistras: build.query<Registra[], number>({
+      query: (constituencyId) => `constituencies/${constituencyId}/registrars`,
+      providesTags: ['ConstituencyRegistrars'],
+    }),
+    createConstituencyRegistra: build.mutation<void, { constituencyId: number; registra: Partial<Registra> }>({
+      query: ({ constituencyId, registra }) => ({
+        url: `constituencies/${constituencyId}/registrars`,
+        method: 'POST',
+        body: registra,
+      }),
+      invalidatesTags: ['ConstituencyRegistrars'],
+    }),
+    updateConstituencyRegistra: build.mutation<void, { constituencyId: number; id: number; updates: Partial<Registra> }>({
+      query: ({ constituencyId, id, updates }) => ({
+        url: `constituencies/${constituencyId}/registrars/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['ConstituencyRegistrars'],
+    }),
+    deleteConstituencyRegistra: build.mutation<void, { constituencyId: number; id: number }>({
+      query: ({ constituencyId, id }) => ({
+        url: `constituencies/${constituencyId}/registrars/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['ConstituencyRegistrars'],
+    }),
+
+    // Municipalities endpoints
+  
+    createMunicipality: build.mutation<MunicipalityModel, Partial<MunicipalityModel>>({
+      query: (newMunicipality) => ({
+        url: '/municipalities',
+        method: 'POST',
+        body: newMunicipality,
+      }),
+      invalidatesTags: ['Municipalities'],
+    }),
+    updateMunicipality: build.mutation<MunicipalityModel, { id: number; updates: Partial<MunicipalityModel> }>({
+      query: ({ id, updates }) => ({
+        url: `/municipalities/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['Municipalities'],
+    }),
+    deleteMunicipality: build.mutation<void, number>({
+      query: (id) => ({
+        url: `/municipalities/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Municipalities'],
+    }),
+    getMunicipalityRegistras: build.query<Registra[], number>({
+      query: (municipalityId) => `municipalities/${municipalityId}/registrars`,
+      providesTags: ['MunicipalityRegistrars'],
+    }),
+    createMunicipalityRegistra: build.mutation<void, { municipalityId: number; registra: Partial<Registra> }>({
+      query: ({ municipalityId, registra }) => ({
+        url: `municipalities/${municipalityId}/registrars`,
+        method: 'POST',
+        body: registra,
+      }),
+      invalidatesTags: ['MunicipalityRegistrars'],
+    }),
+    updateMunicipalityRegistra: build.mutation<void, { municipalityId: number; id: number; updates: Partial<Registra> }>({
+      query: ({ municipalityId, id, updates }) => ({
+        url: `municipalities/${municipalityId}/registrars/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['MunicipalityRegistrars'],
+    }),
+    deleteMunicipalityRegistra: build.mutation<void, { municipalityId: number; id: number }>({
+      query: ({ municipalityId, id }) => ({
+        url: `municipalities/${municipalityId}/registrars/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['MunicipalityRegistrars'],
+    }),
+
+    // 19/09/2024-----------------------END
+
     // Regional Coordinators endpoints
     // getRegionalCoordinatorsInSubregion: build.query<RegionalCoordinator[], number>({
     //   query: (subregionId) => `/subregions/${subregionId}/regionalCoordinators`,
@@ -361,4 +513,21 @@ export const {
   useCreateDistrictRegistraMutation,
   useUpdateDistrictRegistraMutation,
   useDeleteDistrictRegistraMutation,
+
+
+  useCreateConstituencyMutation,
+  useUpdateConstituencyMutation,
+  useDeleteConstituencyMutation,
+  useCreateMunicipalityMutation,
+  useUpdateMunicipalityMutation,
+  useDeleteMunicipalityMutation,
+
+  useGetConstituencyRegistrasQuery,
+  useCreateConstituencyRegistraMutation,
+  useUpdateConstituencyRegistraMutation,
+  useDeleteConstituencyRegistraMutation,
+  useGetMunicipalityRegistrasQuery,
+  useCreateMunicipalityRegistraMutation,
+  useUpdateMunicipalityRegistraMutation,
+  useDeleteMunicipalityRegistraMutation,
 } = api;

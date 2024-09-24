@@ -3,11 +3,11 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-    },
-    nrmRegistra: {
-      type: DataTypes.JSON,
-      allowNull: false,
-    },
+    }
+    // nrmRegistra: {
+    //   type: DataTypes.JSON,
+    //   allowNull: false,
+    // },
   });
 
   Municipality.associate = (models) => {

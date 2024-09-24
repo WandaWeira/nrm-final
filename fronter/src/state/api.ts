@@ -58,26 +58,10 @@ export interface User {
 // 19/09/2024-----------------------START
 export interface ConstituencyModel extends UnitModel {
   districtId: number;
-  nrmRegistra: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string;
-    ninNumber: string;
-    isActive: boolean;
-  };
 }
 
 export interface MunicipalityModel extends UnitModel {
   districtId: number;
-  nrmRegistra: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phoneNumber: string;
-    ninNumber: string;
-    isActive: boolean;
-  };
 }
 
 export interface Registra {
@@ -98,6 +82,25 @@ export interface MunicipalityRegistra extends Registra {
   municipalityId: number;
 }
 // 19/09/2024-----------------------END
+
+// 24/09/2024-----------------------START
+export interface SubcountyModel extends UnitModel {
+  constituencyId: number;
+}
+
+export interface DivisionModel extends UnitModel {
+  municipalityId: number;
+}
+
+export interface SubcountyRegistra extends Registra {
+  subcountyId: number;
+}
+
+export interface DivisionRegistra extends Registra {
+  divisionId: number;
+}
+
+// 24/09/2024-----------------------END
 
 
 
@@ -121,7 +124,7 @@ export const api = createApi({
     'Regions', 'Subregions', 'Districts', 'Constituencies', 'Subcounties', 
     'Parishes', 'Villages', 'Divisions', 'Municipalities', 'Wards', 
     'Cells', 'Cities', 'Users', 'ConstituencyRegistrars',
-    'MunicipalityRegistrars'
+    'MunicipalityRegistrars','SubcountyRegistrars','DivisionRegistrars'
   ],
   endpoints: (build) => ({
     // Authentication
@@ -385,6 +388,109 @@ export const api = createApi({
 
     // 19/09/2024-----------------------END
 
+    // 24/09/2024-----------------------START
+    createSubcounty: build.mutation<SubcountyModel, Partial<SubcountyModel>>({
+      query: (newSubcounty) => ({
+        url: '/subcounties',
+        method: 'POST',
+        body: newSubcounty,
+      }),
+      invalidatesTags: ['Subcounties'],
+    }),
+    updateSubcounty: build.mutation<SubcountyModel, { id: number; updates: Partial<SubcountyModel> }>({
+      query: ({ id, updates }) => ({
+        url: `/subcounties/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['Subcounties'],
+    }),
+    deleteSubcounty: build.mutation<void, number>({
+      query: (id) => ({
+        url: `/subcounties/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Subcounties'],
+    }),
+    createDivision: build.mutation<DivisionModel, Partial<DivisionModel>>({
+      query: (newDivision) => ({
+        url: '/divisions',
+        method: 'POST',
+        body: newDivision,
+      }),
+      invalidatesTags: ['Divisions'],
+    }),
+    updateDivision: build.mutation<DivisionModel, { id: number; updates: Partial<DivisionModel> }>({
+      query: ({ id, updates }) => ({
+        url: `/divisions/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['Divisions'],
+    }),
+    deleteDivision: build.mutation<void, number>({
+      query: (id) => ({
+        url: `/divisions/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Divisions'],
+    }),
+    getSubcountyRegistras: build.query<Registra[], number>({
+      query: (subcountyId) => `subcounties/${subcountyId}/registrars`,
+      providesTags: ['SubcountyRegistrars'],
+    }),
+    createSubcountyRegistra: build.mutation<void, { subcountyId: number; registra: Partial<Registra> }>({
+      query: ({ subcountyId, registra }) => ({
+        url: `subcounties/${subcountyId}/registrars`,
+        method: 'POST',
+        body: registra,
+      }),
+      invalidatesTags: ['SubcountyRegistrars'],
+    }),
+    updateSubcountyRegistra: build.mutation<void, { subcountyId: number; id: number; updates: Partial<Registra> }>({
+      query: ({ subcountyId, id, updates }) => ({
+        url: `subcounties/${subcountyId}/registrars/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['SubcountyRegistrars'],
+    }),
+    deleteSubcountyRegistra: build.mutation<void, { subcountyId: number; id: number }>({
+      query: ({ subcountyId, id }) => ({
+        url: `subcounties/${subcountyId}/registrars/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['SubcountyRegistrars'],
+    }),
+    getDivisionRegistras: build.query<Registra[], number>({
+      query: (divisionId) => `divisions/${divisionId}/registrars`,
+      providesTags: ['DivisionRegistrars'],
+    }),
+    createDivisionRegistra: build.mutation<void, { divisionId: number; registra: Partial<Registra> }>({
+      query: ({ divisionId, registra }) => ({
+        url: `divisions/${divisionId}/registrars`,
+        method: 'POST',
+        body: registra,
+      }),
+      invalidatesTags: ['DivisionRegistrars'],
+    }),
+    updateDivisionRegistra: build.mutation<void, { divisionId: number; id: number; updates: Partial<Registra> }>({
+      query: ({ divisionId, id, updates }) => ({
+        url: `divisions/${divisionId}/registrars/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['DivisionRegistrars'],
+    }),
+    deleteDivisionRegistra: build.mutation<void, { divisionId: number; id: number }>({
+      query: ({ divisionId, id }) => ({
+        url: `divisions/${divisionId}/registrars/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['DivisionRegistrars'],
+    }),
+    // 24/09/2024-----------------------END
+
     // Regional Coordinators endpoints
     // getRegionalCoordinatorsInSubregion: build.query<RegionalCoordinator[], number>({
     //   query: (subregionId) => `/subregions/${subregionId}/regionalCoordinators`,
@@ -431,7 +537,11 @@ export const api = createApi({
       query: () => 'constituencies',
       providesTags: ['Constituencies'],
     }),
-    getSubcounties: build.query<UnitModel[], void>({
+    // getSubcounties: build.query<UnitModel[], void>({
+    //   query: () => 'subcounties',
+    //   providesTags: ['Subcounties'],
+    // }),
+    getSubcounties: build.query<SubcountyModel[], void>({
       query: () => 'subcounties',
       providesTags: ['Subcounties'],
     }),
@@ -443,7 +553,11 @@ export const api = createApi({
       query: () => 'villages',
       providesTags: ['Villages'],
     }),
-    getDivisions: build.query<UnitModel[], void>({
+    // getDivisions: build.query<UnitModel[], void>({
+    //   query: () => 'divisions',
+    //   providesTags: ['Divisions'],
+    // }),
+    getDivisions: build.query<DivisionModel[], void>({
       query: () => 'divisions',
       providesTags: ['Divisions'],
     }),
@@ -494,10 +608,8 @@ export const {
   useCreateRegionalCoordinatorInSubregionMutation,
   // useGetDistrictsQuery,
   useGetConstituenciesQuery,
-  useGetSubcountiesQuery,
   useGetParishesQuery,
   useGetVillagesQuery,
-  useGetDivisionsQuery,
   useGetMunicipalitiesQuery,
   useGetWardsQuery,
   useGetCellsQuery,
@@ -530,4 +642,21 @@ export const {
   useCreateMunicipalityRegistraMutation,
   useUpdateMunicipalityRegistraMutation,
   useDeleteMunicipalityRegistraMutation,
+
+  useGetSubcountiesQuery,
+  useCreateSubcountyMutation,
+  useUpdateSubcountyMutation,
+  useDeleteSubcountyMutation,
+  useGetDivisionsQuery,
+  useCreateDivisionMutation,
+  useUpdateDivisionMutation,
+  useDeleteDivisionMutation,
+  useGetSubcountyRegistrasQuery,
+  useCreateSubcountyRegistraMutation,
+  useUpdateSubcountyRegistraMutation,
+  useDeleteSubcountyRegistraMutation,
+  useGetDivisionRegistrasQuery,
+  useCreateDivisionRegistraMutation,
+  useUpdateDivisionRegistraMutation,
+  useDeleteDivisionRegistraMutation,
 } = api;

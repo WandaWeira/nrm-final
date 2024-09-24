@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Subcounty, Parish } = require("../models");
+const { Subcounty, Parish,SubcountyRegistra  } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
 // Get all subcounties
@@ -137,6 +137,69 @@ router.post("/:subcountyId/parishes", authMiddleware, checkPermission("SuperAdmi
     res.status(201).json(parish);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Get all registrars for a subcounty
+router.get("/:subcountyId/registrars", authMiddleware, checkPermission("PEO"), async (req, res) => {
+  try {
+    const registrars = await SubcountyRegistra.findAll({
+      where: { subcountyId: req.params.subcountyId }
+    });
+    res.json(registrars);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create a new registrar for a subcounty
+router.post("/:subcountyId/registrars", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const subcounty = await Subcounty.findByPk(req.params.subcountyId);
+    if (!subcounty) {
+      return res.status(404).json({ message: "Subcounty not found" });
+    }
+    const registrar = await SubcountyRegistra.create({
+      ...req.body,
+      subcountyId: req.params.subcountyId
+    });
+    res.status(201).json(registrar);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update a subcounty registrar
+router.put("/:subcountyId/registrars/:registrarId", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const registrar = await SubcountyRegistra.findOne({
+      where: { id: req.params.registrarId, subcountyId: req.params.subcountyId }
+    });
+    if (registrar) {
+      await registrar.update(req.body);
+      res.json(registrar);
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete a subcounty registrar
+router.delete("/:subcountyId/registrars/:registrarId", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const registrar = await SubcountyRegistra.findOne({
+      where: { id: req.params.registrarId, subcountyId: req.params.subcountyId }
+    });
+    if (registrar) {
+      await registrar.destroy();
+      res.json({ message: "Registrar deleted" });
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

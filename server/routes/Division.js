@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Division, Municipality } = require("../models");
+const { Division, Municipality,DivisionRegistra  } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
 // Get all divisions
@@ -33,6 +33,7 @@ router.post(
   authMiddleware,
   checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
   async (req, res) => {
+    console.log("req.body===>",req.body)
     try {
       const division = await Division.create({
         ...req.body,
@@ -137,6 +138,72 @@ router.post("/:divisionId/municipalities", authMiddleware, checkPermission("Supe
     res.status(201).json(municipality);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+
+// Get all registrars for a division
+router.get("/:divisionId/registrars", authMiddleware, checkPermission("PEO"), async (req, res) => {
+  try {
+    const registrars = await DivisionRegistra.findAll({
+      where: { divisionId: req.params.divisionId }
+    });
+    res.json(registrars);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create a new registrar for a division
+router.post("/:divisionId/registrars", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    console.log("req.body===>",req.params)
+    console.log("req.body===>",req.body)
+    const division = await Division.findByPk(req.params.divisionId);
+    if (!division) {
+      return res.status(404).json({ message: "Division not found" });
+    }
+    const registrar = await DivisionRegistra.create({
+      ...req.body,
+      divisionId: req.params.divisionId
+    });
+    res.status(201).json(registrar);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update a division registrar
+router.put("/:divisionId/registrars/:registrarId", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const registrar = await DivisionRegistra.findOne({
+      where: { id: req.params.registrarId, divisionId: req.params.divisionId }
+    });
+    if (registrar) {
+      await registrar.update(req.body);
+      res.json(registrar);
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete a division registrar
+router.delete("/:divisionId/registrars/:registrarId", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const registrar = await DivisionRegistra.findOne({
+      where: { id: req.params.registrarId, divisionId: req.params.divisionId }
+    });
+    if (registrar) {
+      await registrar.destroy();
+      res.json({ message: "Registrar deleted" });
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

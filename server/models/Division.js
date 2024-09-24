@@ -4,10 +4,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    nrmRegistra: {
-      type: DataTypes.JSON,
-      allowNull: false,
-    },
+    // nrmRegistra: {
+    //   type: DataTypes.JSON,
+    //   allowNull: false,
+    // },
   });
 
   Division.associate = (models) => {

@@ -62,8 +62,11 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
 
-  Candidate.hasOne(NationalCandidate);
-  NationalCandidate.belongsTo(Candidate);
+  NationalCandidate.associate = (models) => {
+    models.Candidate.hasOne(NationalCandidate);
+    NationalCandidate.belongsTo(models.Candidate);
+  };
+
   return NationalCandidate;
 };
 

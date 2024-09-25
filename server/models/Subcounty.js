@@ -19,10 +19,6 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "subcountyId",
       as: "parishes",
     });
-    Subcounty.hasMany(models.Election, {
-      foreignKey: "subcountyId",
-      as: "elections",
-    });
   };
 
   return Subcounty;

@@ -53,7 +53,10 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  Candidate.hasOne(DistrictCouncillorCandidate);
-  DistrictCouncillorCandidate.belongsTo(Candidate);
+  DistrictCouncillorCandidate.associate = (models) => {
+    models.Candidate.hasOne(DistrictCouncillorCandidate);
+    DistrictCouncillorCandidate.belongsTo(models.Candidate);
+  };
+
   return DistrictCouncillorCandidate;
 };

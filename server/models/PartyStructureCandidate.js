@@ -72,13 +72,13 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
 
-  Candidate.hasOne(PartyStructureCandidate);
-  PartyStructureCandidate.belongsTo(Candidate);
+  PartyStructureCandidate.associate = (models) => {
+    models.Candidate.hasOne(PartyStructureCandidate);
+    PartyStructureCandidate.belongsTo(models.Candidate);
+  };
 
   return PartyStructureCandidate;
 };
-
-
 
 // {
 //     "electionType": "partyStructure",
@@ -93,6 +93,6 @@ module.exports = (sequelize, DataTypes) => {
 //       "constituency": "Central Division",
 //       "subcounty": "Kampala Central",
 //       "parish": "Nakasero"
-    
+
 //     }
 //   }

@@ -1,9 +1,9 @@
 module.exports = (sequelize, DataTypes) => {
   const LocalCouncilCandidate = sequelize.define("LocalCouncilCandidate", {
     lcLevel: {
-        type: DataTypes.ENUM('LC1', 'LC2', 'LC3', 'LCV'),
-        allowNull: false,
-      },
+      type: DataTypes.ENUM("LC1", "LC2", "LC3", "LCV"),
+      allowNull: false,
+    },
     region: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -50,8 +50,11 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
 
-  Candidate.hasOne(LocalCouncilCandidate);
-  LocalCouncilCandidate.belongsTo(Candidate);
+  LocalCouncilCandidate.associate = (models) => {
+    models.Candidate.hasOne(LocalCouncilCandidate);
+    LocalCouncilCandidate.belongsTo(models.Candidate);
+  };
+
   return LocalCouncilCandidate;
 };
 

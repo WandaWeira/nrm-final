@@ -20,38 +20,41 @@ import {
   useCreateDivisionRegistraMutation,
   useUpdateDivisionRegistraMutation,
   useDeleteDivisionRegistraMutation,
+  useGetRegionsQuery,
+  useGetSubregionsQuery
 } from "@/state/api";
 import { Edit, Trash, Plus } from "lucide-react";
 
-interface DistrictModel {
+interface UnitModel {
   id: number;
   name: string;
-  hasCity: boolean;
 }
 
-interface ConstituencyModel {
-  id: number;
-  name: string;
-  districtId: number;
-}
-
-interface MunicipalityModel {
-  id: number;
-  name: string;
-  districtId: number;
-}
-
-interface SubcountyModel {
-  id: number;
-  name: string;
+interface SubcountyModel extends UnitModel {
   constituencyId: number;
 }
 
-interface DivisionModel {
-  id: number;
-  name: string;
+interface DivisionModel extends UnitModel {
   municipalityId: number;
 }
+
+interface ConstituencyModel extends UnitModel {
+  districtId: number;
+}
+
+interface MunicipalityModel extends UnitModel {
+  districtId: number;
+}
+
+interface DistrictModel extends UnitModel {
+  subregionId: number;
+}
+
+interface SubregionModel extends UnitModel {
+  regionId: number;
+}
+
+interface RegionModel extends UnitModel {}
 
 interface Registra {
   id: number;
@@ -64,6 +67,8 @@ interface Registra {
 }
 
 const SubcountiesDivisionsPage: React.FC = () => {
+  const { data: regions } = useGetRegionsQuery();
+  const { data: subregions } = useGetSubregionsQuery();
   const { data: districts } = useGetDistrictsQuery();
   const { data: constituencies } = useGetConstituenciesQuery();
   const { data: municipalities } = useGetMunicipalitiesQuery();
@@ -293,16 +298,24 @@ const SubcountiesDivisionsPage: React.FC = () => {
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Constituency</th>
               <th className="px-4 py-2">District</th>
+              <th className="px-4 py-2">Subregion</th>
+              <th className="px-4 py-2">Region</th>
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {subcounties?.map((subcounty: SubcountyModel) => {
-              const constituency = constituencies?.find(
+          {(subcounties as SubcountyModel[])?.map((subcounty) => {
+              const constituency = (constituencies as ConstituencyModel[])?.find(
                 (c) => c.id === subcounty.constituencyId
               );
-              const district = districts?.find(
+              const district = (districts as DistrictModel[])?.find(
                 (d) => d.id === constituency?.districtId
+              );
+              const subregion = (subregions as SubregionModel[])?.find(
+                (sr) => sr.id === district?.subregionId
+              );
+              const region = (regions as RegionModel[])?.find(
+                (r) => r.id === subregion?.regionId
               );
               return (
                 <tr key={subcounty.id}>
@@ -310,6 +323,8 @@ const SubcountiesDivisionsPage: React.FC = () => {
                   <td className="border px-4 py-2">{subcounty.name}</td>
                   <td className="border px-4 py-2">{constituency?.name || "N/A"}</td>
                   <td className="border px-4 py-2">{district?.name || "N/A"}</td>
+                  <td className="border px-4 py-2">{subregion?.name || "N/A"}</td>
+                  <td className="border px-4 py-2">{region?.name || "N/A"}</td>
                   <td className="border px-4 py-2">
                     <button onClick={() => openEditModal(subcounty)} className="mr-2">
                       <Edit size={16} />
@@ -348,16 +363,24 @@ const SubcountiesDivisionsPage: React.FC = () => {
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">Municipality</th>
               <th className="px-4 py-2">District</th>
+              <th className="px-4 py-2">Subregion</th>
+              <th className="px-4 py-2">Region</th>
               <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {divisions?.map((division: DivisionModel) => {
-              const municipality = municipalities?.find(
+          {(divisions as DivisionModel[])?.map((division) => {
+              const municipality = (municipalities as MunicipalityModel[])?.find(
                 (m) => m.id === division.municipalityId
               );
-              const district = districts?.find(
+              const district = (districts as DistrictModel[])?.find(
                 (d) => d.id === municipality?.districtId
+              );
+              const subregion = (subregions as SubregionModel[])?.find(
+                (sr) => sr.id === district?.subregionId
+              );
+              const region = (regions as RegionModel[])?.find(
+                (r) => r.id === subregion?.regionId
               );
               return (
                 <tr key={division.id}>
@@ -365,6 +388,8 @@ const SubcountiesDivisionsPage: React.FC = () => {
                   <td className="border px-4 py-2">{division.name}</td>
                   <td className="border px-4 py-2">{municipality?.name || "N/A"}</td>
                   <td className="border px-4 py-2">{district?.name || "N/A"}</td>
+                  <td className="border px-4 py-2">{subregion?.name || "N/A"}</td>
+                  <td className="border px-4 py-2">{region?.name || "N/A"}</td>
                   <td className="border px-4 py-2">
                     <button onClick={() => openEditModal(division)} className="mr-2">
                       <Edit size={16} />

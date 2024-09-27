@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   useGetRegionsQuery,
   useGetSubregionsQuery,
@@ -12,9 +12,14 @@ import {
   useGetDivisionsQuery,
   useGetWardsQuery,
   useGetCellsQuery,
+  useAddNationalMutation,
+  useUpdateNationalMutation,
+  useDeleteNationalMutation,
+  useGetNationalsQuery,
 } from "@/state/api";
 
 interface Candidate {
+  id: string;
   ninNumber: string;
   firstName: string;
   lastName: string;
@@ -23,14 +28,15 @@ interface Candidate {
   region: string;
   subregion: string;
   district: string;
-  constituency: string;
-  subcounty: string;
-  parish: string;
+  constituency?: string;
+  subcounty?: string;
+  parish?: string;
   village?: string;
   municipality?: string;
   division?: string;
   ward?: string;
   cell?: string;
+  nationalElectionType: string;
 }
 
 const National: React.FC = () => {
@@ -46,8 +52,14 @@ const National: React.FC = () => {
   const { data: wards } = useGetWardsQuery();
   const { data: cells } = useGetCellsQuery();
 
+  const [addNational] = useAddNationalMutation();
+  const [updateNational] = useUpdateNationalMutation();
+  const [deleteNational] = useDeleteNationalMutation();
+  const { data: nationalCandidates, refetch } = useGetNationalsQuery({});
+
   const [electionType, setElectionType] = useState("");
   const [candidateData, setCandidateData] = useState<Candidate>({
+    id: "",
     ninNumber: "",
     firstName: "",
     lastName: "",
@@ -64,17 +76,11 @@ const National: React.FC = () => {
     division: undefined,
     ward: undefined,
     cell: undefined,
+    nationalElectionType: "",
   });
   const [hasCity, setHasCity] = useState(false);
-  const [candidates, setCandidates] = useState<{ [key: string]: Candidate[] }>({
-    cec: [],
-    leagues: [],
-    presidential: [],
-    sigmps: [],
-    eala: [],
-    speakership: [],
-    parliamentaryCaucus: [],
-  });
+  const [editMode, setEditMode] = useState(false);
+  
 
   const categoryOptions = {
     cec: [
@@ -124,15 +130,77 @@ const National: React.FC = () => {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     setElectionType(e.target.value);
+    setCandidateData({
+      ...candidateData,
+      nationalElectionType: e.target.value,
+    });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCandidates((prev) => ({
-      ...prev,
-      [electionType]: [...prev[electionType], candidateData],
-    }));
+
+    const requiredFields = [
+      "ninNumber",
+      "firstName",
+      "lastName",
+      "phoneNumber",
+      "region",
+      "subregion",
+      "district",
+      "nationalElectionType",
+    ];
+    const missingFields = requiredFields.filter(
+      (field) => !candidateData[field as keyof Candidate]
+    );
+
+    if (missingFields.length > 0) {
+      alert(`Please fill in all required fields: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    try {
+      if (editMode) {
+        await updateNational(candidateData).unwrap();
+      } else {
+        const { id, ...newCandidateData } = candidateData;
+        await addNational(newCandidateData).unwrap();
+      }
+      refetch();
+      resetForm();
+      alert(`Candidate ${editMode ? "updated" : "added"} successfully!`);
+    } catch (error) {
+      console.error(
+        `Failed to ${editMode ? "update" : "add"} candidate:`,
+        error
+      );
+      alert(
+        `Failed to ${editMode ? "update" : "add"} candidate. Please try again.`
+      );
+    }
+  };
+
+  const handleEdit = (candidate: Candidate) => {
+    setCandidateData(candidate);
+    setElectionType(candidate.nationalElectionType);
+    setEditMode(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this candidate?")) {
+      try {
+        await deleteNational(id).unwrap();
+        refetch();
+        alert("Candidate deleted successfully!");
+      } catch (error) {
+        console.error("Failed to delete candidate:", error);
+        alert("Failed to delete candidate. Please try again.");
+      }
+    }
+  };
+
+  const resetForm = () => {
     setCandidateData({
+      id: "",
       ninNumber: "",
       firstName: "",
       lastName: "",
@@ -149,7 +217,10 @@ const National: React.FC = () => {
       division: undefined,
       ward: undefined,
       cell: undefined,
+      nationalElectionType: "",
     });
+    setElectionType("");
+    setEditMode(false);
   };
 
   const renderFormFields = () => {
@@ -179,8 +250,14 @@ const National: React.FC = () => {
     }
   };
 
-  const hasCategoryField = (type: string) => {
-    return type === "cec" || type === "leagues" || type === "sigmps";
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
+
+  const getName = (id: string | undefined, dataArray: any[] | undefined) => {
+    if (!id || !dataArray) return "";
+    const item = dataArray.find((item) => item.id.toString() === id.toString());
+    return item ? item.name : "";
   };
 
   return (
@@ -191,479 +268,476 @@ const National: React.FC = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-md"
+        className="bg-white p-6 rounded-lg shadow-md mb-8"
       >
-        <ElectionTypeSelector
-          electionType={electionType}
-          handleElectionTypeChange={handleElectionTypeChange}
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">
+            Election Type
+          </label>
+          <select
+            className="block w-full mt-1 p-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="electionType"
+            value={electionType}
+            onChange={handleElectionTypeChange}
+          >
+            <option value="">Select Election Type</option>
+            <option value="cec">CEC Elections</option>
+            <option value="leagues">Chairman of Leagues</option>
+            <option value="presidential">Presidential Elections</option>
+            <option value="sigmps">SIG MPs Elections</option>
+            <option value="eala">EALA Elections</option>
+            <option value="speakership">Speakership Elections</option>
+            <option value="parliamentaryCaucus">
+              Parliamentary Caucus Elections
+            </option>
+          </select>
+        </div>
 
-        <CandidateInfoFields
-          candidateData={candidateData}
-          handleInputChange={handleInputChange}
-          regions={regions}
-          subregions={subregions}
-          districts={districts}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="ninNumber"
+            placeholder="NIN Number"
+            value={candidateData.ninNumber}
+            onChange={handleInputChange}
+          />
+          <input
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="firstName"
+            placeholder="First Name"
+            value={candidateData.firstName}
+            onChange={handleInputChange}
+          />
+          <input
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="lastName"
+            placeholder="Last Name"
+            value={candidateData.lastName}
+            onChange={handleInputChange}
+          />
+          <input
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="phoneNumber"
+            placeholder="Phone Number"
+            value={candidateData.phoneNumber}
+            onChange={handleInputChange}
+          />
+          <select
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="region"
+            value={candidateData.region}
+            onChange={handleInputChange}
+          >
+            <option value="">Select Region</option>
+            {regions?.map((region: any) => (
+              <option key={region.id} value={region.id}>
+                {region.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="subregion"
+            value={candidateData.subregion}
+            onChange={handleInputChange}
+          >
+            <option value="">Select Subregion</option>
+            {subregions
+              ?.filter(
+                (subregion: any) =>
+                  subregion.regionId === parseInt(candidateData.region)
+              )
+              .map((subregion: any) => (
+                <option key={subregion.id} value={subregion.id}>
+                  {subregion.name}
+                </option>
+              ))}
+          </select>
+          <select
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            name="district"
+            value={candidateData.district}
+            onChange={handleInputChange}
+          >
+            <option value="">Select District</option>
+            {districts
+              ?.filter(
+                (district: any) =>
+                  district.subregionId === parseInt(candidateData.subregion)
+              )
+              .map((district: any) => (
+                <option key={district.id} value={district.id}>
+                  {district.name}
+                </option>
+              ))}
+          </select>
+        </div>
 
         {!hasCity && (
-          <NonCityFields
-            candidateData={candidateData}
-            handleInputChange={handleInputChange}
-            constituencies={constituencies}
-            subcounties={subcounties}
-            parishes={parishes}
-            villages={villages}
-            electionType={electionType}
-          />
+          <>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="constituency"
+              value={candidateData.constituency}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Constituency</option>
+              {constituencies
+                ?.filter(
+                  (constituency: any) =>
+                    constituency.districtId === parseInt(candidateData.district)
+                )
+                .map((constituency: any) => (
+                  <option key={constituency.id} value={constituency.id}>
+                    {constituency.name}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="subcounty"
+              value={candidateData.subcounty}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Subcounty</option>
+              {subcounties
+                ?.filter(
+                  (subcounty: any) =>
+                    subcounty.constituencyId ===
+                    parseInt(candidateData.constituency)
+                )
+                .map((subcounty: any) => (
+                  <option key={subcounty.id} value={subcounty.id}>
+                    {subcounty.name}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="parish"
+              value={candidateData.parish}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Parish</option>
+              {parishes
+                ?.filter(
+                  (parish: any) =>
+                    parish.subcountyId === parseInt(candidateData.subcounty)
+                )
+                .map((parish: any) => (
+                  <option key={parish.id} value={parish.id}>
+                    {parish.name}
+                  </option>
+                ))}
+            </select>
+            {electionType !== "presidential" && (
+              <select
+                className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+                name="village"
+                value={candidateData.village}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Village</option>
+                {villages
+                  ?.filter(
+                    (village: any) =>
+                      village.parishId === parseInt(candidateData.parish)
+                  )
+                  .map((village: any) => (
+                    <option key={village.id} value={village.id}>
+                      {village.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+          </>
         )}
 
         {hasCity && (
-          <CityFields
-            candidateData={candidateData}
-            handleInputChange={handleInputChange}
-            municipalities={municipalities}
-            divisions={divisions}
-            wards={wards}
-            cells={cells}
-          />
+          <>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="municipality"
+              value={candidateData.municipality || ""}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Municipality</option>
+              {municipalities
+                ?.filter(
+                  (municipality: any) =>
+                    municipality.districtId === parseInt(candidateData.district)
+                )
+                .map((municipality: any) => (
+                  <option
+                    key={municipality.id}
+                    value={municipality.id.toString()}
+                  >
+                    {municipality.name}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="division"
+              value={candidateData.division || ""}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Division</option>
+              {divisions
+                ?.filter(
+                  (division: any) =>
+                    division.municipalityId ===
+                    (candidateData.municipality
+                      ? parseInt(candidateData.municipality)
+                      : undefined)
+                )
+                .map((division: any) => (
+                  <option key={division.id} value={division.id.toString()}>
+                    {division.name}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="ward"
+              value={candidateData.ward || ""}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Ward</option>
+              {wards
+                ?.filter(
+                  (ward: any) =>
+                    ward.divisionId ===
+                    (candidateData.division
+                      ? parseInt(candidateData.division)
+                      : undefined)
+                )
+                .map((ward: any) => (
+                  <option key={ward.id} value={ward.id.toString()}>
+                    {ward.name}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              name="cell"
+              value={candidateData.cell || ""}
+              onChange={handleInputChange}
+            >
+              <option value="">Select Cell</option>
+              {cells
+                ?.filter(
+                  (cell: any) =>
+                    cell.wardId ===
+                    (candidateData.ward
+                      ? parseInt(candidateData.ward)
+                      : undefined)
+                )
+                .map((cell: any) => (
+                  <option key={cell.id} value={cell.id.toString()}>
+                    {cell.name}
+                  </option>
+                ))}
+            </select>
+          </>
         )}
 
         {renderFormFields()}
 
-        <SubmitButton />
+        <button
+          type="submit"
+          className="mt-4 w-full bg-blue-500 text-white py-2 rounded-md shadow-md hover:bg-blue-600"
+        >
+          {editMode ? "Update Candidate" : "Submit Candidate"}
+        </button>
+
+        {editMode && (
+          <button
+            type="button"
+            onClick={resetForm}
+            className="mt-2 w-full bg-gray-300 text-gray-700 py-2 rounded-md shadow-md hover:bg-gray-400"
+          >
+            Cancel Edit
+          </button>
+        )}
       </form>
 
-      <CandidatesTables
-        candidates={candidates}
-        hasCategoryField={hasCategoryField}
-      />
-    </div>
-  );
-};
-
-const ElectionTypeSelector = ({
-  electionType,
-  handleElectionTypeChange,
-}: {
-  electionType: string;
-  handleElectionTypeChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-}) => (
-  <div className="mb-4">
-    <label className="block text-sm font-medium text-gray-700">
-      Election Type
-    </label>
-    <select
-      className="block w-full mt-1 p-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="electionType"
-      value={electionType}
-      onChange={handleElectionTypeChange}
-    >
-      <option value="">Select Election Type</option>
-      <option value="cec">CEC Elections</option>
-      <option value="leagues">Chairman of Leagues</option>
-      <option value="presidential">Presidential Elections</option>
-      <option value="sigmps">SIG MPs Elections</option>
-      <option value="eala">EALA Elections</option>
-      <option value="speakership">Speakership Elections</option>
-      <option value="parliamentaryCaucus">
-        Parliamentary Caucus Elections
-      </option>
-    </select>
-  </div>
-);
-
-const CandidateInfoFields = ({
-  candidateData,
-  handleInputChange,
-  regions,
-  subregions,
-  districts,
-}: {
-  candidateData: Candidate;
-  handleInputChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => void;
-  regions: any;
-  subregions: any;
-  districts: any;
-}) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <input
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="ninNumber"
-      placeholder="NIN Number"
-      value={candidateData.ninNumber}
-      onChange={handleInputChange}
-    />
-    <input
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="firstName"
-      placeholder="First Name"
-      value={candidateData.firstName}
-      onChange={handleInputChange}
-    />
-    <input
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="lastName"
-      placeholder="Last Name"
-      value={candidateData.lastName}
-      onChange={handleInputChange}
-    />
-    <input
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="phoneNumber"
-      placeholder="Phone Number"
-      value={candidateData.phoneNumber}
-      onChange={handleInputChange}
-    />
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="region"
-      value={candidateData.region}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Region</option>
-      {regions?.map((region: any) => (
-        <option key={region.id} value={region.id}>
-          {region.name}
-        </option>
-      ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="subregion"
-      value={candidateData.subregion}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Subregion</option>
-      {subregions
-        ?.filter(
-          (subregion: any) =>
-            subregion.regionId === parseInt(candidateData.region)
-        )
-        .map((subregion: any) => (
-          <option key={subregion.id} value={subregion.id}>
-            {subregion.name}
-          </option>
-        ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="district"
-      value={candidateData.district}
-      onChange={handleInputChange}
-    >
-      <option value="">Select District</option>
-      {districts
-        ?.filter(
-          (district: any) =>
-            district.subregionId === parseInt(candidateData.subregion)
-        )
-        .map((district: any) => (
-          <option key={district.id} value={district.id}>
-            {district.name}
-          </option>
-        ))}
-    </select>
-  </div>
-);
-
-const NonCityFields = ({
-  candidateData,
-  handleInputChange,
-  constituencies,
-  subcounties,
-  parishes,
-  villages,
-  electionType,
-}: {
-  candidateData: Candidate;
-  handleInputChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => void;
-  constituencies: any;
-  subcounties: any;
-  parishes: any;
-  villages: any;
-  electionType: string;
-}) => (
-  <>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="constituency"
-      value={candidateData.constituency}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Constituency</option>
-      {constituencies
-        ?.filter(
-          (constituency: any) =>
-            constituency.districtId === parseInt(candidateData.district)
-        )
-        .map((constituency: any) => (
-          <option key={constituency.id} value={constituency.id}>
-            {constituency.name}
-          </option>
-        ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="subcounty"
-      value={candidateData.subcounty}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Subcounty</option>
-      {subcounties
-        ?.filter(
-          (subcounty: any) =>
-            subcounty.constituencyId === parseInt(candidateData.constituency)
-        )
-        .map((subcounty: any) => (
-          <option key={subcounty.id} value={subcounty.id}>
-            {subcounty.name}
-          </option>
-        ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="parish"
-      value={candidateData.parish}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Parish</option>
-      {parishes
-        ?.filter(
-          (parish: any) =>
-            parish.subcountyId === parseInt(candidateData.subcounty)
-        )
-        .map((parish: any) => (
-          <option key={parish.id} value={parish.id}>
-            {parish.name}
-          </option>
-        ))}
-    </select>
-    {electionType !== "presidential" && (
-      <select
-        className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-        name="village"
-        value={candidateData.village}
-        onChange={handleInputChange}
-      >
-        <option value="">Select Village</option>
-        {villages
-          ?.filter(
-            (village: any) =>
-              village.parishId === parseInt(candidateData.parish)
-          )
-          .map((village: any) => (
-            <option key={village.id} value={village.id}>
-              {village.name}
-            </option>
-          ))}
-      </select>
-    )}
-  </>
-);
-
-const CityFields = ({
-  candidateData,
-  handleInputChange,
-  municipalities,
-  divisions,
-  wards,
-  cells,
-}: {
-  candidateData: Candidate;
-  handleInputChange: (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => void;
-  municipalities: any;
-  divisions: any;
-  wards: any;
-  cells: any;
-}) => (
-  <>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="municipality"
-      value={candidateData.municipality || ""}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Municipality</option>
-      {municipalities
-        ?.filter(
-          (municipality: any) =>
-            municipality.districtId === parseInt(candidateData.district)
-        )
-        .map((municipality: any) => (
-          <option key={municipality.id} value={municipality.id.toString()}>
-            {municipality.name}
-          </option>
-        ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="division"
-      value={candidateData.division || ""}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Division</option>
-      {divisions
-        ?.filter(
-          (division: any) =>
-            division.municipalityId ===
-            (candidateData.municipality
-              ? parseInt(candidateData.municipality)
-              : undefined)
-        )
-        .map((division: any) => (
-          <option key={division.id} value={division.id.toString()}>
-            {division.name}
-          </option>
-        ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="ward"
-      value={candidateData.ward || ""}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Ward</option>
-      {wards
-        ?.filter(
-          (ward: any) =>
-            ward.divisionId ===
-            (candidateData.division
-              ? parseInt(candidateData.division)
-              : undefined)
-        )
-        .map((ward: any) => (
-          <option key={ward.id} value={ward.id.toString()}>
-            {ward.name}
-          </option>
-        ))}
-    </select>
-    <select
-      className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
-      name="cell"
-      value={candidateData.cell || ""}
-      onChange={handleInputChange}
-    >
-      <option value="">Select Cell</option>
-      {cells
-        ?.filter(
-          (cell: any) =>
-            cell.wardId ===
-            (candidateData.ward ? parseInt(candidateData.ward) : undefined)
-        )
-        .map((cell: any) => (
-          <option key={cell.id} value={cell.id.toString()}>
-            {cell.name}
-          </option>
-        ))}
-    </select>
-  </>
-);
-
-const SubmitButton = () => (
-  <button
-    type="submit"
-    className="mt-4 w-full bg-blue-500 text-white py-2 rounded-md shadow-md hover:bg-blue-600"
-  >
-    Submit Candidate
-  </button>
-);
-
-const CandidatesTables = ({
-  candidates,
-  hasCategoryField,
-}: {
-  candidates: { [key: string]: Candidate[] };
-  hasCategoryField: (type: string) => boolean;
-}) => {
-  const electionTypes = Object.keys(candidates);
-  const [activeTab, setActiveTab] = useState(electionTypes[0]);
-
-  return (
-    <div className="mt-8">
-      <div className="mb-4">
-        <div className="sm:hidden">
-          <select
-            className="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-          >
-            {electionTypes.map((type) => (
-              <option key={type} value={type}>
-                {type.replace(/([A-Z])/g, ' $1').toUpperCase()}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="hidden sm:block">
-          <nav className="flex space-x-4" aria-label="Tabs">
-            {electionTypes.map((type) => (
-              <button
-                key={type}
-                onClick={() => setActiveTab(type)}
-                className={`${
-                  activeTab === type
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                } rounded-md px-3 py-2 text-sm font-medium`}
-              >
-                {type.replace(/([A-Z])/g, ' $1').toUpperCase()}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <h2 className="text-xl font-bold mb-4">
-          {activeTab.replace(/([A-Z])/g, ' $1').toUpperCase()} Candidates
-        </h2>
+      <div className="mt-8">
+        <h2 className="text-xl font-bold mb-4">Registered Candidates</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIN</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                {hasCategoryField(activeTab) && (
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                )}
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  NIN
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Phone
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Region
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Subregion
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  District
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Municipality/Constituency
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Division/Subcounty
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Ward/Parish
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Cell/Village
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Election Type
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Category
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {candidates[activeTab].map((candidate, idx) => (
-                <tr key={idx}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{candidate.firstName} {candidate.lastName}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{candidate.ninNumber}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{candidate.phoneNumber}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{candidate.district}, {candidate.constituency}</div>
-                  </td>
-                  {hasCategoryField(activeTab) && (
+              {nationalCandidates?.map((candidate: Candidate, idx: number) => {
+                const hasCity = candidate.municipality !== undefined;
+                return (
+                  <tr key={idx}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{candidate.category}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {candidate.firstName} {candidate.lastName}
+                      </div>
                     </td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
-                    <button className="text-red-600 hover:text-red-900">Delete</button>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {candidate.ninNumber}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {candidate.phoneNumber}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {getName(candidate.region, regions)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {getName(candidate.subregion, subregions)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {getName(candidate.district, districts)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {hasCity
+                          ? getName(candidate.municipality, municipalities)
+                          : getName(candidate.constituency, constituencies)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {hasCity
+                          ? getName(candidate.division, divisions)
+                          : getName(candidate.subcounty, subcounties)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {hasCity
+                          ? getName(candidate.ward, wards)
+                          : getName(candidate.parish, parishes)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {hasCity
+                          ? getName(candidate.cell, cells)
+                          : getName(candidate.village, villages)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {candidate.nationalElectionType}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {candidate.category}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleEdit(candidate)}
+                        className="text-indigo-600 hover:text-indigo-900 mr-2"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(candidate.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

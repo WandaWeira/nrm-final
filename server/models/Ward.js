@@ -4,10 +4,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    nrmRegistra: {
-      type: DataTypes.JSON,
-      allowNull: false,
-    },
   });
 
   Ward.associate = (models) => {
@@ -18,6 +14,10 @@ module.exports = (sequelize, DataTypes) => {
     Ward.hasMany(models.Cell, {
       foreignKey: "wardId",
       as: "cells",
+    });
+    Ward.hasOne(models.WardRegistra, {
+      foreignKey: "wardId",
+      as: "wardRegistra",
     });
   };
 

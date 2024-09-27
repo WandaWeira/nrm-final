@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Village } = require("../models");
+const { Village, VillageRegistra } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
 // Get all villages
@@ -119,5 +119,92 @@ router.put(
     }
   }
 );
+
+// ... existing code ...
+
+// Get all registrars for a village
+router.get(
+  "/:villageId/registrars",
+  authMiddleware,
+  checkPermission("PEO"),
+  async (req, res) => {
+    try {
+      const registrars = await VillageRegistra.findAll({
+        where: { villageId: req.params.villageId },
+      });
+      res.json(registrars);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// Create a new registrar for a village
+router.post(
+  "/:villageId/registrars",
+  authMiddleware,
+  checkPermission(["SuperAdmin", "DistrictRegistra"]),
+  async (req, res) => {
+    try {
+      const village = await Village.findByPk(req.params.villageId);
+      if (!village) {
+        return res.status(404).json({ message: "Village not found" });
+      }
+      const registrar = await VillageRegistra.create({
+        ...req.body,
+        villageId: req.params.villageId,
+      });
+      res.status(201).json(registrar);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+// Update a village registrar
+router.put(
+  "/:villageId/registrars/:registrarId",
+  authMiddleware,
+  checkPermission(["SuperAdmin", "DistrictRegistra"]),
+  async (req, res) => {
+    try {
+      const registrar = await VillageRegistra.findOne({
+        where: { id: req.params.registrarId, villageId: req.params.villageId },
+      });
+      if (registrar) {
+        await registrar.update(req.body);
+        res.json(registrar);
+      } else {
+        res.status(404).json({ message: "Registrar not found" });
+      }
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+);
+
+// Delete a village registrar
+router.delete(
+  "/:villageId/registrars/:registrarId",
+  authMiddleware,
+  checkPermission(["SuperAdmin", "DistrictRegistra"]),
+  async (req, res) => {
+    try {
+      const registrar = await VillageRegistra.findOne({
+        where: { id: req.params.registrarId, villageId: req.params.villageId },
+      });
+      if (registrar) {
+        await registrar.destroy();
+        res.json({ message: "Registrar deleted" });
+      } else {
+        res.status(404).json({ message: "Registrar not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+// ... existing code ...
 
 module.exports = router;

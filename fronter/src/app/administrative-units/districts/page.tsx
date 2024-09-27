@@ -24,7 +24,7 @@ interface DistrictModel {
 interface SubregionModel {
   id: number;
   name: string;
-  regionId: number; // Assuming subregions have a reference to regions
+  regionId: number;
 }
 
 interface RegionModel {
@@ -50,7 +50,7 @@ const DistrictsPage: React.FC = () => {
     refetch,
   } = useGetDistrictsQuery();
   const { data: subregions } = useGetSubregionsQuery();
-  const { data: regions } = useGetRegionsQuery(); // Fetch regions
+  const { data: regions } = useGetRegionsQuery();
   const [createDistrict] = useCreateDistrictMutation();
   const [updateDistrict] = useUpdateDistrictMutation();
   const [deleteDistrict] = useDeleteDistrictMutation();
@@ -72,7 +72,7 @@ const DistrictsPage: React.FC = () => {
     useState<DistrictRegistra | null>(null);
   const [newRegistra, setNewRegistra] = useState<Partial<DistrictRegistra>>({});
 
-  const { data: districtRegistras } = useGetDistrictRegistrasQuery(
+  const { data: districtRegistras, refetch: refetchDistrictRegistras } = useGetDistrictRegistrasQuery(
     selectedDistrictId || 0,
     {
       skip: !selectedDistrictId,
@@ -100,7 +100,7 @@ const DistrictsPage: React.FC = () => {
     try {
       const districtToCreate = {
         ...newDistrict,
-        hasCity: newDistrict.hasCity || false, // Ensure hasCity is always included
+        hasCity: newDistrict.hasCity || false,
       };
       await createDistrict(districtToCreate).unwrap();
       setIsModalOpen(false);
@@ -116,7 +116,7 @@ const DistrictsPage: React.FC = () => {
       const updatedDistrict = {
         ...editingDistrict,
         ...newDistrict,
-        hasCity: newDistrict.hasCity || false, // Ensure hasCity is always included
+        hasCity: newDistrict.hasCity || false,
       };
       try {
         await updateDistrict({
@@ -143,7 +143,6 @@ const DistrictsPage: React.FC = () => {
 
   const handleAddDistrictRegistra = async () => {
     if (selectedDistrictId && newRegistra) {
-      console.log("newRegistra", newRegistra);
       try {
         await createDistrictRegistra({
           districtId: selectedDistrictId,
@@ -151,7 +150,7 @@ const DistrictsPage: React.FC = () => {
         }).unwrap();
         setIsRegistraModalOpen(false);
         setNewRegistra({});
-        setSelectedDistrictId(null);
+        refetchDistrictRegistras();
       } catch (error) {
         console.error("Error adding district registra:", error);
       }
@@ -169,6 +168,7 @@ const DistrictsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setSelectedRegistra(null);
         setNewRegistra({});
+        refetchDistrictRegistras();
       } catch (error) {
         console.error("Error updating district registra:", error);
       }
@@ -182,7 +182,7 @@ const DistrictsPage: React.FC = () => {
           districtId: selectedDistrictId,
           id: registraId,
         }).unwrap();
-        setSelectedRegistra(null);
+        refetchDistrictRegistras();
       } catch (error) {
         console.error("Error deleting district registra:", error);
       }
@@ -201,7 +201,8 @@ const DistrictsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const openAddRegistraModal = () => {
+  const openAddRegistraModal = (districtId: number) => {
+    setSelectedDistrictId(districtId);
     setSelectedRegistra(null);
     setNewRegistra({});
     setIsRegistraModalOpen(true);
@@ -269,15 +270,11 @@ const DistrictsPage: React.FC = () => {
                   <button onClick={() => handleDeleteDistrict(district.id)}>
                     <Trash size={16} />
                   </button>
-
                   <button
-                    onClick={() => {
-                      setSelectedDistrictId(district.id);
-                      openAddRegistraModal();
-                    }}
+                    onClick={() => openAddRegistraModal(district.id)}
                     className="ml-2 text-blue-500"
                   >
-                    View Registra
+                    Registrars
                   </button>
                 </td>
               </tr>
@@ -292,7 +289,6 @@ const DistrictsPage: React.FC = () => {
             <h2 className="text-xl font-semibold mb-4">
               {editingDistrict ? "Edit District" : "Add District"}
             </h2>
-            {/* Form fields for adding/updating a district */}
             <div>
               <label>
                 Name:
@@ -362,21 +358,58 @@ const DistrictsPage: React.FC = () => {
 
       {isRegistraModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-4 rounded shadow-lg w-1/3">
-            <h2 className="text-xl font-bold mb-4">
-              {selectedRegistra
-                ? "Edit District Registra"
-                : "Add District Registra"}
-            </h2>
+          <div className="bg-white p-4 rounded shadow-lg w-2/3 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">District Registrars</h2>
+
+            <div className="mb-6">
+              <table className="min-w-full bg-white">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left">Name</th>
+                    <th className="px-4 py-2 text-left">Email</th>
+                    <th className="px-4 py-2 text-left">Phone Number</th>
+                    <th className="px-4 py-2 text-left">NIN Number</th>
+                    <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {districtRegistras?.map((registrar) => (
+                    <tr key={registrar.id}>
+                      <td className="border px-4 py-2">{`${registrar.firstName} ${registrar.lastName}`}</td>
+                      <td className="border px-4 py-2">{registrar.email}</td>
+                      <td className="border px-4 py-2">{registrar.phoneNumber}</td>
+                      <td className="border px-4 py-2">{registrar.ninNumber}</td>
+                      <td className="border px-4 py-2">{registrar.isActive ? "Active" : "Inactive"}</td>
+                      <td className="border px-4 py-2">
+                        <button
+                          onClick={() => openEditRegistraModal(registrar)}
+                          className="mr-2 text-blue-500 hover:text-blue-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDistrictRegistra(registrar.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-xl font-bold mb-4">
+              {selectedRegistra ? "Edit Registra" : "Add New Registra"}
+            </h3>
             <input
               type="text"
               placeholder="First Name"
               value={newRegistra.firstName || ""}
               onChange={(e) =>
-                setNewRegistra({
-                  ...newRegistra,
-                  firstName: e.target.value,
-                })
+                setNewRegistra({ ...newRegistra, firstName: e.target.value })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
@@ -385,10 +418,7 @@ const DistrictsPage: React.FC = () => {
               placeholder="Last Name"
               value={newRegistra.lastName || ""}
               onChange={(e) =>
-                setNewRegistra({
-                  ...newRegistra,
-                  lastName: e.target.value,
-                })
+                setNewRegistra({ ...newRegistra, lastName: e.target.value })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
@@ -397,10 +427,7 @@ const DistrictsPage: React.FC = () => {
               placeholder="Email"
               value={newRegistra.email || ""}
               onChange={(e) =>
-                setNewRegistra({
-                  ...newRegistra,
-                  email: e.target.value,
-                })
+                setNewRegistra({ ...newRegistra, email: e.target.value })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
@@ -409,10 +436,7 @@ const DistrictsPage: React.FC = () => {
               placeholder="Phone Number"
               value={newRegistra.phoneNumber || ""}
               onChange={(e) =>
-                setNewRegistra({
-                  ...newRegistra,
-                  phoneNumber: e.target.value,
-                })
+                setNewRegistra({ ...newRegistra, phoneNumber: e.target.value })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
@@ -421,10 +445,7 @@ const DistrictsPage: React.FC = () => {
               placeholder="NIN Number"
               value={newRegistra.ninNumber || ""}
               onChange={(e) =>
-                setNewRegistra({
-                  ...newRegistra,
-                  ninNumber: e.target.value,
-                })
+                setNewRegistra({ ...newRegistra, ninNumber: e.target.value })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
@@ -433,31 +454,30 @@ const DistrictsPage: React.FC = () => {
                 type="checkbox"
                 checked={newRegistra.isActive || false}
                 onChange={(e) =>
-                  setNewRegistra({
-                    ...newRegistra,
-                    isActive: e.target.checked,
-                  })
+                  setNewRegistra({ ...newRegistra, isActive: e.target.checked })
                 }
                 className="form-checkbox"
               />
               <span className="ml-2">Active</span>
             </label>
-            <button
-              onClick={
-                selectedRegistra
-                  ? handleUpdateDistrictRegistra
-                  : handleAddDistrictRegistra
-              }
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              {selectedRegistra ? "Update Registra" : "Add Registra"}
-            </button>
-            <button
-              onClick={() => setIsRegistraModalOpen(false)}
-              className="ml-2 bg-gray-500 text-white px-4 py-2 rounded"
-            >
-              Cancel
-            </button>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={selectedRegistra ? handleUpdateDistrictRegistra : handleAddDistrictRegistra}
+                className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+              >
+                {selectedRegistra ? "Update Registra" : "Add Registra"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsRegistraModalOpen(false);
+                  setSelectedRegistra(null);
+                  setNewRegistra({});
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

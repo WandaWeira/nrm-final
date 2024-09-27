@@ -4,16 +4,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    nrmRegistra: {
-      type: DataTypes.JSON,
-      allowNull: false,
-    },
   });
 
   Village.associate = (models) => {
     Village.belongsTo(models.Parish, {
       foreignKey: "parishId",
       as: "parish",
+    });
+    Village.hasOne(models.VillageRegistra, {
+      foreignKey: "villageId",
+      as: "villageRegistra",
     });
   };
 

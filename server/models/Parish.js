@@ -4,10 +4,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    nrmRegistra: {
-      type: DataTypes.JSON,
-      allowNull: false,
-    },
   });
 
   Parish.associate = (models) => {
@@ -22,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
     Parish.hasMany(models.PollingStation, {
       foreignKey: "parishId",
       as: "pollingStations",
+    });
+    Parish.hasOne(models.ParishRegistra, {
+      foreignKey: "parishId",
+      as: "parishRegistra",
     });
   };
 

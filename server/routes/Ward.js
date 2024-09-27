@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Ward, Cell } = require("../models");
+const { Ward, Cell, WardRegistra } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
 // Get all wards
@@ -154,5 +154,72 @@ router.post(
     }
   }
 );
+
+// ... existing code ...
+
+// Get all registrars for a ward
+router.get("/:wardId/registrars", authMiddleware, checkPermission("PEO"), async (req, res) => {
+  try {
+    const registrars = await WardRegistra.findAll({
+      where: { wardId: req.params.wardId }
+    });
+    res.json(registrars);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create a new registrar for a ward
+router.post("/:wardId/registrars", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const ward = await Ward.findByPk(req.params.wardId);
+    if (!ward) {
+      return res.status(404).json({ message: "Ward not found" });
+    }
+    const registrar = await WardRegistra.create({
+      ...req.body,
+      wardId: req.params.wardId
+    });
+    res.status(201).json(registrar);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update a ward registrar
+router.put("/:wardId/registrars/:registrarId", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const registrar = await WardRegistra.findOne({
+      where: { id: req.params.registrarId, wardId: req.params.wardId }
+    });
+    if (registrar) {
+      await registrar.update(req.body);
+      res.json(registrar);
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete a ward registrar
+router.delete("/:wardId/registrars/:registrarId", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
+  try {
+    const registrar = await WardRegistra.findOne({
+      where: { id: req.params.registrarId, wardId: req.params.wardId }
+    });
+    if (registrar) {
+      await registrar.destroy();
+      res.json({ message: "Registrar deleted" });
+    } else {
+      res.status(404).json({ message: "Registrar not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ... existing code ...
 
 module.exports = router;

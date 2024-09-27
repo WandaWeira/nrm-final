@@ -1,5 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const NationalCandidate = sequelize.define("NationalCandidate", {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
     category: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -63,9 +68,9 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   NationalCandidate.associate = (models) => {
-    models.Candidate.hasOne(NationalCandidate);
-    NationalCandidate.belongsTo(models.Candidate);
+    NationalCandidate.belongsTo(models.Candidate, { foreignKey: 'candidateId' });
   };
+
 
   return NationalCandidate;
 };

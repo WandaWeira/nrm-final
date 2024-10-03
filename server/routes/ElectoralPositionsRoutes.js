@@ -176,6 +176,61 @@ const createCRUDRoutes = (model, path) => {
       }
     }
   );
+
+  // Qualify a candidate (SuperAdmin only)
+  router.put(
+    `/${path}/:id/qualify`,
+    authMiddleware,
+    checkPermission("SuperAdmin"),
+    async (req, res) => {
+      try {
+        const item = await model.findByPk(req.params.id);
+        if (item) {
+          await item.update({
+            isQualified: req.body.isQualified,
+            qualifiedBy: req.user.id,
+            qualifiedAt: new Date(),
+          });
+          res.json(item);
+        } else {
+          res.status(404).json({ message: "Item not found" });
+        }
+      } catch (error) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  // Get all nominated candidates
+  router.get(
+    `/${path}/nominated`,
+    authMiddleware,
+    checkPermission("PEO"),
+    async (req, res) => {
+      try {
+        const items = await model.findAll({
+          where: { status: "approved" },
+          include: [
+            {
+              model: Candidate,
+              attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
+            },
+          ],
+        });
+        res.json(
+          items.map((item) => ({
+            ...item.toJSON(),
+            firstName: item.Candidate?.firstName || "",
+            lastName: item.Candidate?.lastName || "",
+            phoneNumber: item.Candidate?.phoneNumber || "",
+            ninNumber: item.Candidate?.ninNumber || "",
+          }))
+        );
+      } catch (error) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
 };
 
 // Create CRUD routes for each model

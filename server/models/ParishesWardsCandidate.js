@@ -61,6 +61,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM("partyStructure", "lc2"),
       allowNull: false,
     },
+    isQualified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
   });
 
   ParishesWardsCandidate.associate = (models) => {

@@ -199,8 +199,6 @@ const National: React.FC = () => {
         }
       });
 
-      console.log(dataToSubmit);
-
       if (editMode) {
         await updateNational({
           ...dataToSubmit,

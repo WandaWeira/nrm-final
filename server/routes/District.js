@@ -35,7 +35,6 @@ router.post(
   checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
   async (req, res) => {
     try {
-      console.log(req.body)
       const district = await District.create({
         ...req.body,
         status: req.user.role === "SuperAdmin" ? "approved" : "pending",

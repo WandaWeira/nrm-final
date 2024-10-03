@@ -32,6 +32,7 @@ import {
   useCreateWardPollingStationMutation,
   useUpdateWardPollingStationMutation,
   useDeleteWardPollingStationMutation,
+  PollingStation
 } from "@/state/api";
 import { Edit, Trash, Plus } from "lucide-react";
 
@@ -48,29 +49,29 @@ interface WardModel extends UnitModel {
   divisionId: number;
 }
 
-interface SubcountyModel extends UnitModel {
-  constituencyId: number;
-}
+// interface SubcountyModel extends UnitModel {
+//   constituencyId: number;
+// }
 
-interface ConstituencyModel extends UnitModel {
-  districtId: number;
-}
+// interface ConstituencyModel extends UnitModel {
+//   districtId: number;
+// }
 
-interface DistrictModel extends UnitModel {
-  subregionId: number;
-}
+// interface DistrictModel extends UnitModel {
+//   subregionId: number;
+// }
 
-interface SubregionModel extends UnitModel {
-  regionId: number;
-}
+// interface SubregionModel extends UnitModel {
+//   regionId: number;
+// }
 
-interface DivisionModel extends UnitModel {
-  municipalityId: number;
-}
+// interface DivisionModel extends UnitModel {
+//   municipalityId: number;
+// }
 
-interface MunicipalityModel extends UnitModel {
-  districtId: number;
-}
+// interface MunicipalityModel extends UnitModel {
+//   districtId: number;
+// }
 
 interface Registra {
   id: number;
@@ -310,7 +311,6 @@ const ParishesWardsPage: React.FC = () => {
 
   const handleAddRegistra = async () => {
     if (selectedId && newRegistra) {
-      console.log(newRegistra);
       try {
         if (isParish) {
           await createParishRegistra({

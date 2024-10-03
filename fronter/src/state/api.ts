@@ -130,7 +130,6 @@ export interface CellModel extends UnitModel {
 export interface PollingStation {
   id: number;
   name: string;
-  // code: string;
   parishId?: number;
   wardId?: number;
 }
@@ -1294,4 +1293,9 @@ export const {
   useCreateWardPollingStationMutation,
   useUpdateWardPollingStationMutation,
   useDeleteWardPollingStationMutation,
+
+
+  //nominated
+  // useGetNominatedCandidatesQuery,
+  // useUpdateNominatedCandidateMutation,
 } = api;

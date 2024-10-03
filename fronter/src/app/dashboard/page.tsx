@@ -7,8 +7,6 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    console.log("Session status:", status);
-    console.log("Session data:", session);
   }, [status]);
 
   if (status === "loading") {

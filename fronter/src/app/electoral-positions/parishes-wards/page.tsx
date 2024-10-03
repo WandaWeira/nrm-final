@@ -192,8 +192,6 @@ const ParishesWardsElections: React.FC = () => {
         }
       });
 
-      console.log(dataToSubmit);
-
       if (editMode) {
         await updateParishesWardsCandidate({
           ...dataToSubmit,

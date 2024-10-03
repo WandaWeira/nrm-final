@@ -8,8 +8,6 @@ function ClientLayoutSwitch({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    console.log("Session status:", status);
-    console.log("Session data:", session);
   }, [status, session]);
 
   // If session is still loading, we show a loader

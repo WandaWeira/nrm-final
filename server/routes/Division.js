@@ -33,7 +33,6 @@ router.post(
   authMiddleware,
   checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
   async (req, res) => {
-    console.log("req.body===>",req.body)
     try {
       const division = await Division.create({
         ...req.body,
@@ -157,8 +156,6 @@ router.get("/:divisionId/registrars", authMiddleware, checkPermission("PEO"), as
 // Create a new registrar for a division
 router.post("/:divisionId/registrars", authMiddleware, checkPermission(["SuperAdmin", "DistrictRegistra"]), async (req, res) => {
   try {
-    console.log("req.body===>",req.params)
-    console.log("req.body===>",req.body)
     const division = await Division.findByPk(req.params.divisionId);
     if (!division) {
       return res.status(404).json({ message: "Division not found" });

@@ -160,7 +160,6 @@ const ConstituencyMunicipalityElections: React.FC = () => {
         }
       });
 
-      console.log(dataToSubmit);
 
       if (editMode) {
         await updateConstituencyMunicipalityCandidate({

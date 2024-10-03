@@ -34,7 +34,6 @@ router.post(
   checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
   async (req, res) => {
     try {
-      console.log("sdfhhsdfhdsh==>",req.body)
       const municipality = await Municipality.create({
         ...req.body,
         status: req.user.role === "SuperAdmin" ? "approved" : "pending",

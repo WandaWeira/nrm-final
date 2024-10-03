@@ -22,53 +22,6 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// Permission-checking middleware
-// const checkPermission = (requiredRole) => {
-//   return (req, res, next) => {
-//     const userRole = req.user.role;
-
-//     console.log(userRole);
-//     // Allow SuperAdmin for all actions
-//     if (userRole === "SuperAdmin") {
-//       return next();
-//     }
-
-//     // Allow specific roles based on the required role
-//     if (Array.isArray(requiredRole)) {
-//       if (requiredRole.includes(userRole)) {
-//         return next();
-//       }
-//     } else if (userRole === requiredRole) {
-//       return next();
-//     }
-
-//     // Allow PEO role for GET requests only
-//     if (userRole === "PEO" && req.method === "GET") {
-//       return next();
-//     }
-
-//     // Allow DistrictRegistra or RegionalCoordinator for GET requests
-//     if (
-//       (userRole === "DistrictRegistra" || userRole === "RegionalCoordinator") &&
-//       req.method === "GET"
-//     ) {
-//       return next();
-//     }
-
-//     // Allow DistrictRegistra or RegionalCoordinator to create, update, and delete with pending status
-//     if (
-//       (userRole === "DistrictRegistra" || userRole === "RegionalCoordinator") &&
-//       (req.method === "POST" || req.method === "PUT" || req.method === "DELETE")
-//     ) {
-//       req.body.status = "pending"; // Set status to pending for non-GET actions
-//       return next();
-//     }
-
-//     // If none of the above conditions are met, deny access
-//     res.status(403).send({ error: "Not authorized to perform this action." });
-//   };
-// };
-
 const checkPermission = (requiredRole) => {
   return (req, res, next) => {
     const userRole = req.user.role;

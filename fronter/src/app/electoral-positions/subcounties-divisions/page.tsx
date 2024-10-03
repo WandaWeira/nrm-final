@@ -210,8 +210,6 @@ const SubcountiesDivisionsElections: React.FC = () => {
         }
       });
 
-      console.log(dataToSubmit);
-
       if (editMode) {
         await updateSubcountiesDivisionsCandidate({
           ...dataToSubmit,

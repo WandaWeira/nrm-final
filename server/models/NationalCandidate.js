@@ -65,6 +65,12 @@ module.exports = (sequelize, DataTypes) => {
       ),
       allowNull: false,
     },
+
+    isQualified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
   });
 
   NationalCandidate.associate = (models) => {

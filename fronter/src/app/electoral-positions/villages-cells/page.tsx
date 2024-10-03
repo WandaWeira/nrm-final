@@ -195,8 +195,6 @@ const VillagesCellsElections: React.FC = () => {
         }
       });
 
-      console.log(dataToSubmit);
-
       if (editMode) {
         await updateVillageCellsCandidate({
           ...dataToSubmit,

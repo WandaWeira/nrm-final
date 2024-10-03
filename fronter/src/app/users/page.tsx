@@ -19,6 +19,13 @@ interface User {
   phoneNumber: string;
 }
 
+const userRoles = [
+  "RegionalCoordinator",
+  "DistrictRegistra",
+  "PEO",
+  "SuperAdmin",
+];
+
 const UsersPage: React.FC = () => {
   const { data: users, isLoading, isError, refetch } = useGetUsersQuery();
   const [addUser] = useAddUserMutation();
@@ -195,14 +202,20 @@ const UsersPage: React.FC = () => {
                 }
                 className="mb-4 w-full px-4 py-2 border rounded"
               />
-              <input
-                placeholder="Role"
+              <select
                 value={newUser.role || ""}
                 onChange={(e) =>
                   setNewUser({ ...newUser, role: e.target.value })
                 }
                 className="mb-4 w-full px-4 py-2 border rounded"
-              />
+              >
+                <option value="">Select Role</option>
+                {userRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
               <input
                 placeholder="NIN Number"
                 value={newUser.ninNumber || ""}

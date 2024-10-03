@@ -132,6 +132,7 @@ export interface PollingStation {
   name: string;
   parishId?: number;
   wardId?: number;
+  code: string;
 }
 
 

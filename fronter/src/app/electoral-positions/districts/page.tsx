@@ -19,7 +19,7 @@ import {
 } from "@/state/api";
 
 interface DistrictCandidate {
-  id?: string;
+  id: string;
   ninNumber: string;
   firstName: string;
   lastName: string;

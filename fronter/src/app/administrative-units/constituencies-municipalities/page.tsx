@@ -112,19 +112,16 @@ const ConstituenciesMunicipalitiesPage: React.FC = () => {
   //   }
   // );
 
-  const { data: constituencyRegistras, refetch: refetchConstituencyRegistras } = useGetConstituencyRegistrasQuery(
-    selectedId || 0,
-    {
+  const { data: constituencyRegistras, refetch: refetchConstituencyRegistras } =
+    useGetConstituencyRegistrasQuery(selectedId || 0, {
       skip: !selectedId || districts?.find((d) => d.id === selectedId)?.hasCity,
-    }
-  );
+    });
 
-  const { data: municipalityRegistras, refetch: refetchMunicipalityRegistras } = useGetMunicipalityRegistrasQuery(
-    selectedId || 0,
-    {
-      skip: !selectedId || !districts?.find((d) => d.id === selectedId)?.hasCity,
-    }
-  );
+  const { data: municipalityRegistras, refetch: refetchMunicipalityRegistras } =
+    useGetMunicipalityRegistrasQuery(selectedId || 0, {
+      skip:
+        !selectedId || !districts?.find((d) => d.id === selectedId)?.hasCity,
+    });
 
   const subregionMap = useMemo(() => {
     if (!subregions) return new Map<number, string>();
@@ -366,8 +363,8 @@ const ConstituenciesMunicipalitiesPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {constituencies?.map(
-            (constituency: ConstituencyMunicipalityModel) => {
+          {(constituencies as ConstituencyMunicipalityModel[])?.map(
+            (constituency) => {
               const district = districts?.find(
                 (d) => d.id === constituency.districtId
               );
@@ -429,8 +426,8 @@ const ConstituenciesMunicipalitiesPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {municipalities?.map(
-            (municipality: ConstituencyMunicipalityModel) => {
+          {(municipalities as ConstituencyMunicipalityModel[])?.map(
+            (municipality) => {
               const district = districts?.find(
                 (d) => d.id === municipality.districtId
               );

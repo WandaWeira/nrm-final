@@ -32,7 +32,7 @@ import {
   useCreateWardPollingStationMutation,
   useUpdateWardPollingStationMutation,
   useDeleteWardPollingStationMutation,
-  PollingStation
+  PollingStation,
 } from "@/state/api";
 import { Edit, Trash, Plus } from "lucide-react";
 
@@ -49,29 +49,17 @@ interface WardModel extends UnitModel {
   divisionId: number;
 }
 
-// interface SubcountyModel extends UnitModel {
-//   constituencyId: number;
-// }
+interface DistrictModel extends UnitModel {
+  subregionId: number;
+}
 
-// interface ConstituencyModel extends UnitModel {
-//   districtId: number;
-// }
+interface ConstituencyModel extends UnitModel {
+  districtId: number;
+}
 
-// interface DistrictModel extends UnitModel {
-//   subregionId: number;
-// }
-
-// interface SubregionModel extends UnitModel {
-//   regionId: number;
-// }
-
-// interface DivisionModel extends UnitModel {
-//   municipalityId: number;
-// }
-
-// interface MunicipalityModel extends UnitModel {
-//   districtId: number;
-// }
+interface MunicipalityModel extends UnitModel {
+  districtId: number;
+}
 
 interface Registra {
   id: number;
@@ -81,6 +69,10 @@ interface Registra {
   phoneNumber: string;
   ninNumber: string;
   isActive: boolean;
+}
+
+interface SubcountyModel extends UnitModel {
+  constituencyId: number;
 }
 
 const ParishesWardsPage: React.FC = () => {
@@ -132,9 +124,13 @@ const ParishesWardsPage: React.FC = () => {
   const [updateWardRegistra] = useUpdateWardRegistraMutation();
   const [deleteWardRegistra] = useDeleteWardRegistraMutation();
 
-  const [isPollingStationModalOpen, setIsPollingStationModalOpen] = useState(false);
-  const [selectedPollingStation, setSelectedPollingStation] = useState<PollingStation | null>(null);
-  const [newPollingStation, setNewPollingStation] = useState<Partial<PollingStation>>({});
+  const [isPollingStationModalOpen, setIsPollingStationModalOpen] =
+    useState(false);
+  const [selectedPollingStation, setSelectedPollingStation] =
+    useState<PollingStation | null>(null);
+  const [newPollingStation, setNewPollingStation] = useState<
+    Partial<PollingStation>
+  >({});
 
   const { data: parishPollingStations, refetch: refetchParishPollingStations } =
     useGetParishPollingStationsQuery(selectedId || 0, {
@@ -152,7 +148,6 @@ const ParishesWardsPage: React.FC = () => {
   const [createWardPollingStation] = useCreateWardPollingStationMutation();
   const [updateWardPollingStation] = useUpdateWardPollingStationMutation();
   const [deleteWardPollingStation] = useDeleteWardPollingStationMutation();
-
 
   const handleAddPollingStation = async () => {
     if (selectedId && newPollingStation.name && newPollingStation.code) {
@@ -177,7 +172,7 @@ const ParishesWardsPage: React.FC = () => {
         console.error("Error adding polling station:", error);
       }
     }
-  }
+  };
 
   const handleUpdatePollingStation = async () => {
     if (selectedPollingStation && selectedId) {
@@ -240,8 +235,6 @@ const ParishesWardsPage: React.FC = () => {
     setNewPollingStation(pollingStation);
     setIsPollingStationModalOpen(true);
   };
-
-
 
   const handleAddItem = async () => {
     if (selectedParentId) {
@@ -441,14 +434,14 @@ const ParishesWardsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {parishes?.map((parish) => {
-               const subcounty = subcounties?.find(
+            {(parishes as ParishModel[])?.map((parish) => {
+              const subcounty = (subcounties as SubcountyModel[])?.find(
                 (sc) => sc.id === parish.subcountyId
               );
-              const constituency = constituencies?.find(
-                (c) => c.id === subcounty?.constituencyId
-              );
-              const district = districts?.find(
+              const constituency = (
+                constituencies as ConstituencyModel[]
+              )?.find((c) => c.id === subcounty?.constituencyId);
+              const district = (districts as DistrictModel[])?.find(
                 (d) => d.id === constituency?.districtId
               );
               const subregion = subregions?.find(
@@ -480,11 +473,13 @@ const ParishesWardsPage: React.FC = () => {
                       Registrars
                     </button>
                     <button
-          onClick={() => openAddPollingStationModal(parish.id, "parish")}
-          className="ml-2 text-green-500"
-        >
-          View Polling Stations
-        </button>
+                      onClick={() =>
+                        openAddPollingStationModal(parish.id, "parish")
+                      }
+                      className="ml-2 text-green-500"
+                    >
+                      View Polling Stations
+                    </button>
                   </td>
                 </tr>
               );
@@ -517,12 +512,12 @@ const ParishesWardsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {wards?.map((ward) => {
+            {(wards as WardModel[])?.map((ward) => {
               const division = divisions?.find((d) => d.id === ward.divisionId);
-              const municipality = municipalities?.find(
-                (m) => m.id === division?.municipalityId
-              );
-              const district = districts?.find(
+              const municipality = (
+                municipalities as MunicipalityModel[]
+              )?.find((m) => m.id === division?.municipalityId);
+              const district = (districts as DistrictModel[])?.find(
                 (d) => d.id === municipality?.districtId
               );
               const subregion = subregions?.find(
@@ -554,11 +549,13 @@ const ParishesWardsPage: React.FC = () => {
                       Registrars
                     </button>
                     <button
-          onClick={() => openAddPollingStationModal(ward.id, "ward")}
-          className="ml-2 text-green-500"
-        >
-          View Polling Stations
-        </button>
+                      onClick={() =>
+                        openAddPollingStationModal(ward.id, "ward")
+                      }
+                      className="ml-2 text-green-500"
+                    >
+                      View Polling Stations
+                    </button>
                   </td>
                 </tr>
               );
@@ -760,7 +757,7 @@ const ParishesWardsPage: React.FC = () => {
         </div>
       )}
 
-{isPollingStationModalOpen && (
+      {isPollingStationModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-4 rounded shadow-lg w-2/3 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
@@ -777,41 +774,55 @@ const ParishesWardsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {(isParish ? parishPollingStations : wardPollingStations)?.map(
-                    (pollingStation) => (
-                      <tr key={pollingStation.id}>
-                        <td className="border px-4 py-2">{pollingStation.name}</td>
-                        <td className="border px-4 py-2">{pollingStation.code}</td>
-                        <td className="border px-4 py-2">
-                          <button
-                            onClick={() => openEditPollingStationModal(pollingStation)}
-                            className="mr-2 text-blue-500 hover:text-blue-700"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeletePollingStation(pollingStation.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  )}
+                  {(isParish
+                    ? parishPollingStations
+                    : wardPollingStations
+                  )?.map((pollingStation) => (
+                    <tr key={pollingStation.id}>
+                      <td className="border px-4 py-2">
+                        {pollingStation.name}
+                      </td>
+                      <td className="border px-4 py-2">
+                        {pollingStation.code}
+                      </td>
+                      <td className="border px-4 py-2">
+                        <button
+                          onClick={() =>
+                            openEditPollingStationModal(pollingStation)
+                          }
+                          className="mr-2 text-blue-500 hover:text-blue-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeletePollingStation(pollingStation.id)
+                          }
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             <h3 className="text-xl font-bold mb-4">
-              {selectedPollingStation ? "Edit Polling Station" : "Add New Polling Station"}
+              {selectedPollingStation
+                ? "Edit Polling Station"
+                : "Add New Polling Station"}
             </h3>
             <input
               type="text"
               placeholder="Name"
               value={newPollingStation.name || ""}
               onChange={(e) =>
-                setNewPollingStation({ ...newPollingStation, name: e.target.value })
+                setNewPollingStation({
+                  ...newPollingStation,
+                  name: e.target.value,
+                })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
@@ -820,18 +831,25 @@ const ParishesWardsPage: React.FC = () => {
               placeholder="Code"
               value={newPollingStation.code || ""}
               onChange={(e) =>
-                setNewPollingStation({ ...newPollingStation, code: e.target.value })
+                setNewPollingStation({
+                  ...newPollingStation,
+                  code: e.target.value,
+                })
               }
               className="border border-gray-300 p-2 w-full mb-2"
             />
             <div className="flex justify-end mt-4">
               <button
                 onClick={
-                  selectedPollingStation ? handleUpdatePollingStation : handleAddPollingStation
+                  selectedPollingStation
+                    ? handleUpdatePollingStation
+                    : handleAddPollingStation
                 }
                 className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
               >
-                {selectedPollingStation ? "Update Polling Station" : "Add Polling Station"}
+                {selectedPollingStation
+                  ? "Update Polling Station"
+                  : "Add Polling Station"}
               </button>
               <button
                 onClick={() => {

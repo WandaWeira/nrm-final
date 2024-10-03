@@ -127,6 +127,14 @@ export interface CellModel extends UnitModel {
   wardId: number;
 }
 
+export interface PollingStation {
+  id: number;
+  name: string;
+  // code: string;
+  parishId?: number;
+  wardId?: number;
+}
+
 
 
 
@@ -151,10 +159,9 @@ export const api = createApi({
     'Parishes', 'Villages', 'Divisions', 'Municipalities', 'Wards', 
     'Cells', 'Cities', 'Users', 'ConstituencyRegistrars',
     'MunicipalityRegistrars','SubcountyRegistrars','DivisionRegistrars',
-    'Candidate', 'DistrictCouncillor', 'DistrictSIGCouncillor', 'LocalCouncil', 'NationalCandidate', 'PartyStructure', 
-    'SubcountyCouncillor', 'SubcountySIGCouncillor', 
-    'ConstituencyCandidate','WardRegistrars','ParishRegistrars','VillageRegistrars',
-    'CellRegistrars'
+    'Candidate', 'VillageCellsCandidates', 'NationalCandidate','WardRegistrars','ParishRegistrars','VillageRegistrars',
+    'CellRegistrars','ParishPollingStations','WardPollingStations','ParishesWardsCandidates','SubcountiesDivisionsCandidates',
+    'ConstituencyMunicipalityCandidates','DistrictCandidates'
   ],
   endpoints: (build) => ({
     // Authentication
@@ -187,7 +194,7 @@ export const api = createApi({
         url: `user/users/${user.id}`,
         method: 'PUT',
         body: user,
-      }),
+      }), 
       invalidatesTags: ['Users'],
     }),
     deleteUser: build.mutation<void, string>({
@@ -850,106 +857,6 @@ export const api = createApi({
       }),
       invalidatesTags: ['Candidate'],
     }),
-
-    // District Councillor
-    getDistrictCouncillors: build.query({
-      query: () => 'electoral-positions/district-councillors',
-      providesTags: ['DistrictCouncillor'],
-    }),
-    getDistrictCouncillor: build.query({
-      query: (id) => `electoral-positions/district-councillors/${id}`,
-      providesTags: ['DistrictCouncillor'],
-    }),
-    addDistrictCouncillor: build.mutation({
-      query: (councillor) => ({
-        url: 'electoral-positions/district-councillors',
-        method: 'POST',
-        body: councillor,
-      }),
-      invalidatesTags: ['DistrictCouncillor'],
-    }),
-    updateDistrictCouncillor: build.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `electoral-positions/district-councillors/${id}`,
-        method: 'PUT',
-        body: patch,
-      }),
-      invalidatesTags: ['DistrictCouncillor'],
-    }),
-    deleteDistrictCouncillor: build.mutation({
-      query: (id) => ({
-        url: `electoral-positions/district-councillors/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['DistrictCouncillor'],
-    }),
-
-    // District SIG Councillor
-    getDistrictSIGCouncillors: build.query({
-      query: () => 'electoral-positions/district-sig-councillors',
-      providesTags: ['DistrictSIGCouncillor'],
-    }),
-    getDistrictSIGCouncillor: build.query({
-      query: (id) => `electoral-positions/district-sig-councillors/${id}`,
-      providesTags: ['DistrictSIGCouncillor'],
-    }),
-    addDistrictSIGCouncillor: build.mutation({
-      query: (councillor) => ({
-        url: 'electoral-positions/district-sig-councillors',
-        method: 'POST',
-        body: councillor,
-      }),
-      invalidatesTags: ['DistrictSIGCouncillor'],
-    }),
-    updateDistrictSIGCouncillor: build.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `electoral-positions/district-sig-councillors/${id}`,
-        method: 'PUT',
-        body: patch,
-      }),
-      invalidatesTags: ['DistrictSIGCouncillor'],
-    }),
-    deleteDistrictSIGCouncillor: build.mutation({
-      query: (id) => ({
-        url: `electoral-positions/district-sig-councillors/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['DistrictSIGCouncillor'],
-    }),
-
-    // Local Council
-    getLocalCouncils: build.query({
-      query: () => 'electoral-positions/local-council',
-      providesTags: ['LocalCouncil'],
-    }),
-    getLocalCouncil: build.query({
-      query: (id) => `electoral-positions/local-council/${id}`,
-      providesTags: ['LocalCouncil'],
-    }),
-    addLocalCouncil: build.mutation({
-      query: (council) => ({
-        url: 'electoral-positions/local-council',
-        method: 'POST',
-        body: council,
-      }),
-      invalidatesTags: ['LocalCouncil'],
-    }),
-    updateLocalCouncil: build.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `electoral-positions/local-council/${id}`,
-        method: 'PUT',
-        body: patch,
-      }),
-      invalidatesTags: ['LocalCouncil'],
-    }),
-    deleteLocalCouncil: build.mutation({
-      query: (id) => ({
-        url: `electoral-positions/local-council/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['LocalCouncil'],
-    }),
-
     // National
     getNationals: build.query({
       query: () => 'electoral-positions/national',
@@ -983,140 +890,235 @@ export const api = createApi({
       invalidatesTags: ['NationalCandidate'],
     }),
 
-    // Party Structure
-    getPartyStructures: build.query({
-      query: () => 'electoral-positions/party-structure',
-      providesTags: ['PartyStructure'],
+    //Village
+    getVillageCellsCandidates: build.query({
+      query: () => 'electoral-positions/village-cell-candidates',
+      providesTags: ['VillageCellsCandidates'],
     }),
-    getPartyStructure: build.query({
-      query: (id) => `electoral-positions/party-structure/${id}`,
-      providesTags: ['PartyStructure'],
+    getVillageCellsCandidate: build.query({
+      query: (id) => `electoral-positions/village-cell-candidates/${id}`,
+      providesTags: ['VillageCellsCandidates'],
     }),
-    addPartyStructure: build.mutation({
-      query: (structure) => ({
-        url: 'electoral-positions/party-structure',
+    addVillageCellsCandidate: build.mutation({
+      query: (villageCell) => ({
+        url: 'electoral-positions/village-cell-candidates',
         method: 'POST',
-        body: structure,
+        body: villageCell,
       }),
-      invalidatesTags: ['PartyStructure'],
+      invalidatesTags: ['VillageCellsCandidates'],
     }),
-    updatePartyStructure: build.mutation({
+    updateVillageCellsCandidate: build.mutation({
       query: ({ id, ...patch }) => ({
-        url: `electoral-positions/party-structure/${id}`,
+        url: `electoral-positions/village-cell-candidates/${id}`,
         method: 'PUT',
         body: patch,
       }),
-      invalidatesTags: ['PartyStructure'],
+      invalidatesTags: ['VillageCellsCandidates'],
     }),
-    deletePartyStructure: build.mutation({
+    deleteVillageCellsCandidate: build.mutation({
       query: (id) => ({
-        url: `electoral-positions/party-structure/${id}`,
+        url: `electoral-positions/village-cell-candidates/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['PartyStructure'],
+      invalidatesTags: ['VillageCellsCandidates'],
     }),
 
-    // Subcounty Councillor
-    getSubcountyCouncillors: build.query({
-      query: () => 'electoral-positions/subcounty-councillors',
-      providesTags: ['SubcountyCouncillor'],
-    }),
-    getSubcountyCouncillor: build.query({
-      query: (id) => `electoral-positions/subcounty-councillors/${id}`,
-      providesTags: ['SubcountyCouncillor'],
-    }),
-    addSubcountyCouncillor: build.mutation({
-      query: (councillor) => ({
-        url: 'electoral-positions/subcounty-councillors',
-        method: 'POST',
-        body: councillor,
-      }),
-      invalidatesTags: ['SubcountyCouncillor'],
-    }),
-    updateSubcountyCouncillor: build.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `electoral-positions/subcounty-councillors/${id}`,
-        method: 'PUT',
-        body: patch,
-      }),
-      invalidatesTags: ['SubcountyCouncillor'],
-    }),
-    deleteSubcountyCouncillor: build.mutation({
-      query: (id) => ({
-        url: `electoral-positions/subcounty-councillors/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['SubcountyCouncillor'],
-    }),
+    //Parishes-wards
+        getParishesWardsCandidates: build.query({
+          query: () => 'electoral-positions/parishes-wards-candidates',
+          providesTags: ['ParishesWardsCandidates'],
+        }),
+        getParishesWardsCandidate: build.query({
+          query: (id) => `electoral-positions/parishes-wards-candidates/${id}`,
+          providesTags: ['ParishesWardsCandidates'],
+        }),
+        addParishesWardsCandidate: build.mutation({
+          query: (villageCell) => ({
+            url: 'electoral-positions/parishes-wards-candidates',
+            method: 'POST',
+            body: villageCell,
+          }),
+          invalidatesTags: ['ParishesWardsCandidates'],
+        }),
+        updateParishesWardsCandidate: build.mutation({
+          query: ({ id, ...patch }) => ({
+            url: `electoral-positions/parishes-wards-candidates/${id}`,
+            method: 'PUT',
+            body: patch,
+          }),
+          invalidatesTags: ['ParishesWardsCandidates'],
+        }),
+        deleteParishesWardsCandidate: build.mutation({
+          query: (id) => ({
+            url: `electoral-positions/parishes-wards-candidates/${id}`,
+            method: 'DELETE',
+          }),
+          invalidatesTags: ['ParishesWardsCandidates'],
+        }),
 
-    // Subcounty SIG Councillor
-    getSubcountySIGCouncillors: build.query({
-      query: () => 'electoral-positions/subcounty-sig-councillors',
-      providesTags: ['SubcountySIGCouncillor'],
-    }),
-    getSubcountySIGCouncillor: build.query({
-      query: (id) => `electoral-positions/subcounty-sig-councillors/${id}`,
-      providesTags: ['SubcountySIGCouncillor'],
-    }),
-    addSubcountySIGCouncillor: build.mutation({
-      query: (councillor) => ({
-        url: 'electoral-positions/subcounty-sig-councillors',
-        method: 'POST',
-        body: councillor,
-      }),
-      invalidatesTags: ['SubcountySIGCouncillor'],
-    }),
-    updateSubcountySIGCouncillor: build.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `electoral-positions/subcounty-sig-councillors/${id}`,
-        method: 'PUT',
-        body: patch,
-      }),
-      invalidatesTags: ['SubcountySIGCouncillor'],
-    }),
-    deleteSubcountySIGCouncillor: build.mutation({
-      query: (id) => ({
-        url: `electoral-positions/subcounty-sig-councillors/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['SubcountySIGCouncillor'],
-    }),
-
-    // Constituency
-    getConstituenciesCandidate: build.query({
-      query: () => 'electoral-positions/constituency-candidate',
-      providesTags: ['ConstituencyCandidate'],
-    }),
-    getConstituencyCandidate: build.query({
-      query: (id) => `electoral-positions/constituency-candidate/${id}`,
-      providesTags: ['ConstituencyCandidate'],
-    }),
-    addConstituencyCandidate: build.mutation({
-      query: (constituency) => ({
-        url: 'electoral-positions/constituency-candidate',
-        method: 'POST',
-        body: constituency,
-      }),
-      invalidatesTags: ['ConstituencyCandidate'],
-    }),
-    updateConstituencyCandidate: build.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `electoral-positions/constituency-candidate/${id}`,
-        method: 'PUT',
-        body: patch,
-      }),
-      invalidatesTags: ['ConstituencyCandidate'],
-    }),
-    deleteConstituencyCandidate: build.mutation({
-      query: (id) => ({
-        url: `electoral-positions/constituency-candidate/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['ConstituencyCandidate'],
-    }),
+         //Subcounties divisions
+         getSubcountiesDivisionsCandidates: build.query({
+          query: () => 'electoral-positions/subcounties-divisions-candidates',
+          providesTags: ['SubcountiesDivisionsCandidates'],
+        }),
+        getSubcountiesDivisionsCandidate: build.query({
+          query: (id) => `electoral-positions/subcounties-divisions-candidates/${id}`,
+          providesTags: ['SubcountiesDivisionsCandidates'],
+        }),
+        addSubcountiesDivisionsCandidate: build.mutation({
+          query: (villageCell) => ({
+            url: 'electoral-positions/subcounties-divisions-candidates',
+            method: 'POST',
+            body: villageCell,
+          }),
+          invalidatesTags: ['SubcountiesDivisionsCandidates'],
+        }),
+        updateSubcountiesDivisionsCandidate: build.mutation({
+          query: ({ id, ...patch }) => ({
+            url: `electoral-positions/subcounties-divisions-candidates/${id}`,
+            method: 'PUT',
+            body: patch,
+          }),
+          invalidatesTags: ['SubcountiesDivisionsCandidates'],
+        }),
+        deleteSubcountiesDivisionsCandidate: build.mutation({
+          query: (id) => ({
+            url: `electoral-positions/subcounties-divisions-candidates/${id}`,
+            method: 'DELETE',
+          }),
+          invalidatesTags: ['SubcountiesDivisionsCandidates'],
+        }),
 
 
+         //constituency municipality
+         getConstituencyMunicipalityCandidates: build.query({
+          query: () => 'electoral-positions/constituency-municipality-candidates',
+          providesTags: ['ConstituencyMunicipalityCandidates'],
+        }),
+        getConstituencyMunicipalityCandidate: build.query({
+          query: (id) => `electoral-positions/constituency-municipality-candidates/${id}`,
+          providesTags: ['ConstituencyMunicipalityCandidates'],
+        }),
+        addConstituencyMunicipalityCandidate: build.mutation({
+          query: (villageCell) => ({
+            url: 'electoral-positions/constituency-municipality-candidates',
+            method: 'POST',
+            body: villageCell,
+          }),
+          invalidatesTags: ['ConstituencyMunicipalityCandidates'],
+        }),
+        updateConstituencyMunicipalityCandidate: build.mutation({
+          query: ({ id, ...patch }) => ({
+            url: `electoral-positions/constituency-municipality-candidates/${id}`,
+            method: 'PUT',
+            body: patch,
+          }),
+          invalidatesTags: ['ConstituencyMunicipalityCandidates'],
+        }),
+        deleteConstituencyMunicipalityCandidate: build.mutation({
+          query: (id) => ({
+            url: `electoral-positions/constituency-municipality-candidates/${id}`,
+            method: 'DELETE',
+          }),
+          invalidatesTags: ['ConstituencyMunicipalityCandidates'],
+        }),
+
+          //district
+          getDistrictCandidates: build.query({
+            query: () => 'electoral-positions/district-candidates',
+            providesTags: ['DistrictCandidates'],
+          }),
+          getDistrictCandidate: build.query({
+            query: (id) => `electoral-positions/district-candidates/${id}`,
+            providesTags: ['DistrictCandidates'],
+          }),
+          addDistrictCandidate: build.mutation({
+            query: (villageCell) => ({
+              url: 'electoral-positions/district-candidates',
+              method: 'POST',
+              body: villageCell,
+            }),
+            invalidatesTags: ['DistrictCandidates'],
+          }),
+          updateDistrictCandidate: build.mutation({
+            query: ({ id, ...patch }) => ({
+              url: `electoral-positions/district-candidates/${id}`,
+              method: 'PUT',
+              body: patch,
+            }),
+            invalidatesTags: ['DistrictCandidates'],
+          }),
+          deleteDistrictCandidate: build.mutation({
+            query: (id) => ({
+              url: `electoral-positions/district-candidates/${id}`,
+              method: 'DELETE',
+            }),
+            invalidatesTags: ['DistrictCandidates'],
+          }),
+  
+
+
+        
+    
     ///End of electoral positions apis
+
+    // Parish Polling Stations
+    getParishPollingStations: build.query<PollingStation[], number>({
+      query: (parishId) => `parishes/${parishId}/polling-stations`,
+      providesTags: ['ParishPollingStations'],
+    }),
+    createParishPollingStation: build.mutation<void, { parishId: number; pollingStation: Partial<PollingStation> }>({
+      query: ({ parishId, pollingStation }) => ({
+        url: `parishes/${parishId}/polling-stations`,
+        method: 'POST',
+        body: pollingStation,
+      }),
+      invalidatesTags: ['ParishPollingStations'],
+    }),
+    updateParishPollingStation: build.mutation<void, { parishId: number; id: number; updates: Partial<PollingStation> }>({
+      query: ({ parishId, id, updates }) => ({
+        url: `parishes/${parishId}/polling-stations/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['ParishPollingStations'],
+    }),
+    deleteParishPollingStation: build.mutation<void, { parishId: number; id: number }>({
+      query: ({ parishId, id }) => ({
+        url: `parishes/${parishId}/polling-stations/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['ParishPollingStations'],
+    }),
+
+    // Ward Polling Stations
+    getWardPollingStations: build.query<PollingStation[], number>({
+      query: (wardId) => `wards/${wardId}/polling-stations`,
+      providesTags: ['WardPollingStations'],
+    }),
+    createWardPollingStation: build.mutation<void, { wardId: number; pollingStation: Partial<PollingStation> }>({
+      query: ({ wardId, pollingStation }) => ({
+        url: `wards/${wardId}/polling-stations`,
+        method: 'POST',
+        body: pollingStation,
+      }),
+      invalidatesTags: ['WardPollingStations'],
+    }),
+    updateWardPollingStation: build.mutation<void, { wardId: number; id: number; updates: Partial<PollingStation> }>({
+      query: ({ wardId, id, updates }) => ({
+        url: `wards/${wardId}/polling-stations/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: ['WardPollingStations'],
+    }),
+    deleteWardPollingStation: build.mutation<void, { wardId: number; id: number }>({
+      query: ({ wardId, id }) => ({
+        url: `wards/${wardId}/polling-stations/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['WardPollingStations'],
+    }),
 
 
 
@@ -1237,46 +1239,59 @@ export const {
   useAddCandidateMutation,
   useUpdateCandidateMutation,
   useDeleteCandidateMutation,
-  useGetDistrictCouncillorsQuery,
-  useGetDistrictCouncillorQuery,
-  useAddDistrictCouncillorMutation,
-  useUpdateDistrictCouncillorMutation,
-  useDeleteDistrictCouncillorMutation,
-  useGetDistrictSIGCouncillorsQuery,
-  useGetDistrictSIGCouncillorQuery,
-  useAddDistrictSIGCouncillorMutation,
-  useUpdateDistrictSIGCouncillorMutation,
-  useDeleteDistrictSIGCouncillorMutation,
-  useGetLocalCouncilsQuery,
-  useGetLocalCouncilQuery,
-  useAddLocalCouncilMutation,
-  useUpdateLocalCouncilMutation,
-  useDeleteLocalCouncilMutation,
+  ////
   useGetNationalsQuery,
   useGetNationalQuery,
   useAddNationalMutation,
   useUpdateNationalMutation,
   useDeleteNationalMutation,
-  useGetPartyStructuresQuery,
-  useGetPartyStructureQuery,
-  useAddPartyStructureMutation,
-  useUpdatePartyStructureMutation,
-  useDeletePartyStructureMutation,
-  useGetSubcountyCouncillorsQuery,
-  useGetSubcountyCouncillorQuery,
-  useAddSubcountyCouncillorMutation,
-  useUpdateSubcountyCouncillorMutation,
-  useDeleteSubcountyCouncillorMutation,
-  useGetSubcountySIGCouncillorsQuery,
-  useGetSubcountySIGCouncillorQuery,
-  useAddSubcountySIGCouncillorMutation,
-  useUpdateSubcountySIGCouncillorMutation,
-  useDeleteSubcountySIGCouncillorMutation,
-  useGetConstituenciesCandidateQuery,
-  useGetConstituencyCandidateQuery,
-  useAddConstituencyCandidateMutation,
-  useUpdateConstituencyCandidateMutation,
-  useDeleteConstituencyCandidateMutation,
+  ///
+
+    ////
+    useGetVillageCellsCandidatesQuery,
+    useGetVillageCellsCandidateQuery,
+    useAddVillageCellsCandidateMutation,
+    useUpdateVillageCellsCandidateMutation,
+    useDeleteVillageCellsCandidateMutation,
+    ///
+
+    ////
+    useGetParishesWardsCandidatesQuery,
+    useGetParishesWardsCandidateQuery,
+    useAddParishesWardsCandidateMutation,
+    useUpdateParishesWardsCandidateMutation,
+    useDeleteParishesWardsCandidateMutation,
+    /////SubcountiesDivisions
+
+    ////
+    useGetSubcountiesDivisionsCandidatesQuery,
+    useGetSubcountiesDivisionsCandidateQuery,
+    useAddSubcountiesDivisionsCandidateMutation,
+    useUpdateSubcountiesDivisionsCandidateMutation,
+    useDeleteSubcountiesDivisionsCandidateMutation,
+
+    ////
+    useGetConstituencyMunicipalityCandidatesQuery,
+    useGetConstituencyMunicipalityCandidateQuery,
+    useAddConstituencyMunicipalityCandidateMutation,
+    useUpdateConstituencyMunicipalityCandidateMutation,
+    useDeleteConstituencyMunicipalityCandidateMutation,
+
+    //
+    useAddDistrictCandidateMutation,
+    useUpdateDistrictCandidateMutation,
+    useDeleteDistrictCandidateMutation,
+    useGetDistrictCandidatesQuery,
+    
 
   ///End of electoral positions apis
+
+  useGetParishPollingStationsQuery,
+  useCreateParishPollingStationMutation,
+  useUpdateParishPollingStationMutation,
+  useDeleteParishPollingStationMutation,
+  useGetWardPollingStationsQuery,
+  useCreateWardPollingStationMutation,
+  useUpdateWardPollingStationMutation,
+  useDeleteWardPollingStationMutation,
 } = api;

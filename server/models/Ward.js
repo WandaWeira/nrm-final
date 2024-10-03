@@ -15,6 +15,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: "wardId",
       as: "cells",
     });
+    Ward.hasMany(models.PollingStation, {
+      foreignKey: "wardId",
+      as: "pollingStations",
+    });
     Ward.hasOne(models.WardRegistra, {
       foreignKey: "wardId",
       as: "wardRegistra",

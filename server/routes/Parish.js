@@ -160,6 +160,45 @@ router.post("/:parishId/polling-stations", authMiddleware, checkPermission("Supe
   }
 });
 
+
+//update polling sttaion
+router.put("/:parishId/polling-stations/:pollingStationId", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
+  try {
+    const pollingStation = await PollingStation.findOne({
+      where: { id: req.params.pollingStationId, parishId: req.params.parishId }
+    });
+    
+    if (!pollingStation) {
+      return res.status(404).json({ message: "Polling station not found" });
+    }
+    
+    await pollingStation.update(req.body);
+    res.json(pollingStation);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+//delete poling station
+router.delete("/:parishId/polling-stations/:pollingStationId", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
+  try {
+    const pollingStation = await PollingStation.findOne({
+      where: { id: req.params.pollingStationId, parishId: req.params.parishId }
+    });
+    
+    if (!pollingStation) {
+      return res.status(404).json({ message: "Polling station not found" });
+    }
+    
+    await pollingStation.destroy();
+    res.json({ message: "Polling station deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+
 // ... existing code ...
 
 // Get all registrars for a parish

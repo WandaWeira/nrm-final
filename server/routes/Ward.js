@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { Ward, Cell, WardRegistra } = require("../models");
+const { Ward, Cell, WardRegistra, PollingStation } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
 // Get all wards
@@ -219,6 +219,66 @@ router.delete("/:wardId/registrars/:registrarId", authMiddleware, checkPermissio
     res.status(500).json({ message: error.message });
   }
 });
+
+// Get all polling stations for a ward
+router.get("/:wardId/polling-stations", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
+  try {
+    const pollingStations = await PollingStation.findAll({
+      where: { wardId: req.params.wardId }
+    });
+    res.json(pollingStations);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create a polling station for a ward
+router.post("/:wardId/polling-stations", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
+  try {
+    const pollingStation = await PollingStation.create({ ...req.body, wardId: req.params.wardId });
+    res.status(201).json(pollingStation);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Update a polling station in a ward
+router.put("/:wardId/polling-stations/:pollingStationId", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
+  try {
+    const pollingStation = await PollingStation.findOne({
+      where: { id: req.params.pollingStationId, wardId: req.params.wardId }
+    });
+    
+    if (!pollingStation) {
+      return res.status(404).json({ message: "Polling station not found" });
+    }
+    
+    await pollingStation.update(req.body);
+    res.json(pollingStation);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete a polling station in a ward
+router.delete("/:wardId/polling-stations/:pollingStationId", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
+  try {
+    const pollingStation = await PollingStation.findOne({
+      where: { id: req.params.pollingStationId, wardId: req.params.wardId }
+    });
+    
+    if (!pollingStation) {
+      return res.status(404).json({ message: "Polling station not found" });
+    }
+    
+    await pollingStation.destroy();
+    res.json({ message: "Polling station deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 
 // ... existing code ...
 

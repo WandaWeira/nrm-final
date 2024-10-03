@@ -24,6 +24,14 @@ import {
   useCreateWardRegistraMutation,
   useUpdateWardRegistraMutation,
   useDeleteWardRegistraMutation,
+  useGetParishPollingStationsQuery,
+  useCreateParishPollingStationMutation,
+  useUpdateParishPollingStationMutation,
+  useDeleteParishPollingStationMutation,
+  useGetWardPollingStationsQuery,
+  useCreateWardPollingStationMutation,
+  useUpdateWardPollingStationMutation,
+  useDeleteWardPollingStationMutation,
 } from "@/state/api";
 import { Edit, Trash, Plus } from "lucide-react";
 
@@ -122,6 +130,117 @@ const ParishesWardsPage: React.FC = () => {
   const [createWardRegistra] = useCreateWardRegistraMutation();
   const [updateWardRegistra] = useUpdateWardRegistraMutation();
   const [deleteWardRegistra] = useDeleteWardRegistraMutation();
+
+  const [isPollingStationModalOpen, setIsPollingStationModalOpen] = useState(false);
+  const [selectedPollingStation, setSelectedPollingStation] = useState<PollingStation | null>(null);
+  const [newPollingStation, setNewPollingStation] = useState<Partial<PollingStation>>({});
+
+  const { data: parishPollingStations, refetch: refetchParishPollingStations } =
+    useGetParishPollingStationsQuery(selectedId || 0, {
+      skip: !selectedId || !isParish,
+    });
+
+  const { data: wardPollingStations, refetch: refetchWardPollingStations } =
+    useGetWardPollingStationsQuery(selectedId || 0, {
+      skip: !selectedId || isParish,
+    });
+
+  const [createParishPollingStation] = useCreateParishPollingStationMutation();
+  const [updateParishPollingStation] = useUpdateParishPollingStationMutation();
+  const [deleteParishPollingStation] = useDeleteParishPollingStationMutation();
+  const [createWardPollingStation] = useCreateWardPollingStationMutation();
+  const [updateWardPollingStation] = useUpdateWardPollingStationMutation();
+  const [deleteWardPollingStation] = useDeleteWardPollingStationMutation();
+
+
+  const handleAddPollingStation = async () => {
+    if (selectedId && newPollingStation.name && newPollingStation.code) {
+      try {
+        if (isParish) {
+          await createParishPollingStation({
+            parishId: selectedId,
+            pollingStation: newPollingStation,
+          }).unwrap();
+          refetchParishPollingStations();
+        } else {
+          await createWardPollingStation({
+            wardId: selectedId,
+            pollingStation: newPollingStation,
+          }).unwrap();
+          refetchWardPollingStations();
+        }
+        setIsPollingStationModalOpen(false);
+        setNewPollingStation({});
+        setSelectedId(null);
+      } catch (error) {
+        console.error("Error adding polling station:", error);
+      }
+    }
+  }
+
+  const handleUpdatePollingStation = async () => {
+    if (selectedPollingStation && selectedId) {
+      try {
+        if (isParish) {
+          await updateParishPollingStation({
+            parishId: selectedId,
+            id: selectedPollingStation.id,
+            updates: newPollingStation as PollingStation,
+          }).unwrap();
+          refetchParishPollingStations();
+        } else {
+          await updateWardPollingStation({
+            wardId: selectedId,
+            id: selectedPollingStation.id,
+            updates: newPollingStation as PollingStation,
+          }).unwrap();
+          refetchWardPollingStations();
+        }
+        setIsPollingStationModalOpen(false);
+        setSelectedPollingStation(null);
+        setNewPollingStation({});
+      } catch (error) {
+        console.error("Error updating polling station:", error);
+      }
+    }
+  };
+
+  const handleDeletePollingStation = async (pollingStationId: number) => {
+    if (selectedId) {
+      try {
+        if (isParish) {
+          await deleteParishPollingStation({
+            parishId: selectedId,
+            id: pollingStationId,
+          }).unwrap();
+          refetchParishPollingStations();
+        } else {
+          await deleteWardPollingStation({
+            wardId: selectedId,
+            id: pollingStationId,
+          }).unwrap();
+          refetchWardPollingStations();
+        }
+        setSelectedPollingStation(null);
+      } catch (error) {
+        console.error("Error deleting polling station:", error);
+      }
+    }
+  };
+
+  const openAddPollingStationModal = (id: number, type: "parish" | "ward") => {
+    setSelectedId(id);
+    setIsParish(type === "parish");
+    setIsPollingStationModalOpen(true);
+  };
+
+  const openEditPollingStationModal = (pollingStation: PollingStation) => {
+    setSelectedPollingStation(pollingStation);
+    setNewPollingStation(pollingStation);
+    setIsPollingStationModalOpen(true);
+  };
+
+
 
   const handleAddItem = async () => {
     if (selectedParentId) {
@@ -360,6 +479,12 @@ const ParishesWardsPage: React.FC = () => {
                     >
                       Registrars
                     </button>
+                    <button
+          onClick={() => openAddPollingStationModal(parish.id, "parish")}
+          className="ml-2 text-green-500"
+        >
+          View Polling Stations
+        </button>
                   </td>
                 </tr>
               );
@@ -428,6 +553,12 @@ const ParishesWardsPage: React.FC = () => {
                     >
                       Registrars
                     </button>
+                    <button
+          onClick={() => openAddPollingStationModal(ward.id, "ward")}
+          className="ml-2 text-green-500"
+        >
+          View Polling Stations
+        </button>
                   </td>
                 </tr>
               );
@@ -619,6 +750,94 @@ const ParishesWardsPage: React.FC = () => {
                   setIsRegistraModalOpen(false);
                   setSelectedRegistra(null);
                   setNewRegistra({});
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+{isPollingStationModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-4 rounded shadow-lg w-2/3 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">
+              {isParish ? "Parish" : "Ward"} Polling Stations
+            </h2>
+
+            <div className="mb-6">
+              <table className="min-w-full bg-white">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left">Name</th>
+                    <th className="px-4 py-2 text-left">Code</th>
+                    <th className="px-4 py-2 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(isParish ? parishPollingStations : wardPollingStations)?.map(
+                    (pollingStation) => (
+                      <tr key={pollingStation.id}>
+                        <td className="border px-4 py-2">{pollingStation.name}</td>
+                        <td className="border px-4 py-2">{pollingStation.code}</td>
+                        <td className="border px-4 py-2">
+                          <button
+                            onClick={() => openEditPollingStationModal(pollingStation)}
+                            className="mr-2 text-blue-500 hover:text-blue-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePollingStation(pollingStation.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-xl font-bold mb-4">
+              {selectedPollingStation ? "Edit Polling Station" : "Add New Polling Station"}
+            </h3>
+            <input
+              type="text"
+              placeholder="Name"
+              value={newPollingStation.name || ""}
+              onChange={(e) =>
+                setNewPollingStation({ ...newPollingStation, name: e.target.value })
+              }
+              className="border border-gray-300 p-2 w-full mb-2"
+            />
+            <input
+              type="text"
+              placeholder="Code"
+              value={newPollingStation.code || ""}
+              onChange={(e) =>
+                setNewPollingStation({ ...newPollingStation, code: e.target.value })
+              }
+              className="border border-gray-300 p-2 w-full mb-2"
+            />
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={
+                  selectedPollingStation ? handleUpdatePollingStation : handleAddPollingStation
+                }
+                className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+              >
+                {selectedPollingStation ? "Update Polling Station" : "Add Polling Station"}
+              </button>
+              <button
+                onClick={() => {
+                  setIsPollingStationModalOpen(false);
+                  setSelectedPollingStation(null);
+                  setNewPollingStation({});
                 }}
                 className="bg-gray-500 text-white px-4 py-2 rounded"
               >

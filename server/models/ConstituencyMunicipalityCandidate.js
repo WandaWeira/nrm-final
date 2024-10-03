@@ -1,10 +1,11 @@
 module.exports = (sequelize, DataTypes) => {
-  const DistrictCouncillorCandidate = sequelize.define(
-    "DistrictCouncillorCandidate",
+  const ConstituencyMunicipalityCandidate = sequelize.define(
+    "ConstituencyMunicipalityCandidate",
     {
-      councillorType: {
-        type: DataTypes.ENUM("Direct Councillor", "Female Councillor"),
-        allowNull: false,
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
       },
       region: {
         type: DataTypes.STRING,
@@ -20,15 +21,15 @@ module.exports = (sequelize, DataTypes) => {
       },
       constituency: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       subcounty: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       parish: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       village: {
         type: DataTypes.STRING,
@@ -50,13 +51,18 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      constituencyMunicipalityElectionType: {
+        type: DataTypes.ENUM("mps"),
+        allowNull: false,
+      },
     }
   );
 
-  DistrictCouncillorCandidate.associate = (models) => {
-    models.Candidate.hasOne(DistrictCouncillorCandidate);
-    DistrictCouncillorCandidate.belongsTo(models.Candidate);
+  ConstituencyMunicipalityCandidate.associate = (models) => {
+    ConstituencyMunicipalityCandidate.belongsTo(models.Candidate, {
+      foreignKey: "candidateId",
+    });
   };
 
-  return DistrictCouncillorCandidate;
+  return ConstituencyMunicipalityCandidate;
 };

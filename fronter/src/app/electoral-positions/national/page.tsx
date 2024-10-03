@@ -80,7 +80,7 @@ const National: React.FC = () => {
   });
   const [hasCity, setHasCity] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  
+  const [activeTab, setActiveTab] = useState<string>("all");
 
   const categoryOptions = {
     cec: [
@@ -113,10 +113,10 @@ const National: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setCandidateData({
-      ...candidateData,
+    setCandidateData((prev) => ({
+      ...prev,
       [name]: value === "" ? undefined : value,
-    });
+    }));
 
     if (name === "district") {
       const selectedDistrict = districts?.find(
@@ -149,6 +149,17 @@ const National: React.FC = () => {
       "district",
       "nationalElectionType",
     ];
+
+    // Add conditional required fields based on whether it's a city or not
+    if (!hasCity) {
+      requiredFields.push("constituency", "subcounty", "parish");
+      if (electionType !== "presidential") {
+        requiredFields.push("village");
+      }
+    } else {
+      requiredFields.push("municipality", "division", "ward", "cell");
+    }
+
     const missingFields = requiredFields.filter(
       (field) => !candidateData[field as keyof Candidate]
     );
@@ -159,11 +170,44 @@ const National: React.FC = () => {
     }
 
     try {
+      // Create a new object with all fields, regardless of city status
+      const dataToSubmit: Partial<Candidate> = {
+        ninNumber: candidateData.ninNumber,
+        firstName: candidateData.firstName,
+        lastName: candidateData.lastName,
+        phoneNumber: candidateData.phoneNumber,
+        region: candidateData.region,
+        subregion: candidateData.subregion,
+        district: candidateData.district,
+        nationalElectionType: candidateData.nationalElectionType,
+        category: candidateData.category,
+        // Include all location fields, they will be null/undefined if not applicable
+        constituency: candidateData.constituency,
+        subcounty: candidateData.subcounty,
+        parish: candidateData.parish,
+        village: candidateData.village,
+        municipality: candidateData.municipality,
+        division: candidateData.division,
+        ward: candidateData.ward,
+        cell: candidateData.cell,
+      };
+
+      // Remove undefined fields to avoid sending them to the server
+      Object.keys(dataToSubmit).forEach((key) => {
+        if (dataToSubmit[key as keyof Candidate] === undefined) {
+          delete dataToSubmit[key as keyof Candidate];
+        }
+      });
+
+      console.log(dataToSubmit);
+
       if (editMode) {
-        await updateNational(candidateData).unwrap();
+        await updateNational({
+          ...dataToSubmit,
+          id: candidateData.id,
+        }).unwrap();
       } else {
-        const { id, ...newCandidateData } = candidateData;
-        await addNational(newCandidateData).unwrap();
+        await addNational(dataToSubmit).unwrap();
       }
       refetch();
       resetForm();
@@ -195,6 +239,20 @@ const National: React.FC = () => {
         console.error("Failed to delete candidate:", error);
         alert("Failed to delete candidate. Please try again.");
       }
+    }
+  };
+
+  const getLocationName = (
+    candidate: Candidate,
+    cityField: keyof Candidate,
+    ruralField: keyof Candidate,
+    cityData: any[] | undefined,
+    ruralData: any[] | undefined
+  ) => {
+    if (candidate[cityField]) {
+      return getName(candidate[cityField] as string, cityData || []);
+    } else {
+      return getName(candidate[ruralField] as string, ruralData || []);
     }
   };
 
@@ -230,7 +288,7 @@ const National: React.FC = () => {
       case "sigmps":
         return (
           <select
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="category"
             value={candidateData.category}
             onChange={handleInputChange}
@@ -260,6 +318,13 @@ const National: React.FC = () => {
     return item ? item.name : "";
   };
 
+  const filterCandidatesByType = (type: string) => {
+    if (type === "all") return nationalCandidates;
+    return nationalCandidates?.filter(
+      (candidate: Candidate) => candidate.nationalElectionType === type
+    );
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">
@@ -275,7 +340,7 @@ const National: React.FC = () => {
             Election Type
           </label>
           <select
-            className="block w-full mt-1 p-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full mt-1 p-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="electionType"
             value={electionType}
             onChange={handleElectionTypeChange}
@@ -295,35 +360,35 @@ const National: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="ninNumber"
             placeholder="NIN Number"
             value={candidateData.ninNumber}
             onChange={handleInputChange}
           />
           <input
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="firstName"
             placeholder="First Name"
             value={candidateData.firstName}
             onChange={handleInputChange}
           />
           <input
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="lastName"
             placeholder="Last Name"
             value={candidateData.lastName}
             onChange={handleInputChange}
           />
           <input
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="phoneNumber"
             placeholder="Phone Number"
             value={candidateData.phoneNumber}
             onChange={handleInputChange}
           />
           <select
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="region"
             value={candidateData.region}
             onChange={handleInputChange}
@@ -336,7 +401,7 @@ const National: React.FC = () => {
             ))}
           </select>
           <select
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="subregion"
             value={candidateData.subregion}
             onChange={handleInputChange}
@@ -354,7 +419,7 @@ const National: React.FC = () => {
               ))}
           </select>
           <select
-            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
             name="district"
             value={candidateData.district}
             onChange={handleInputChange}
@@ -376,9 +441,9 @@ const National: React.FC = () => {
         {!hasCity && (
           <>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="constituency"
-              value={candidateData.constituency}
+              value={candidateData.constituency || ""}
               onChange={handleInputChange}
             >
               <option value="">Select Constituency</option>
@@ -394,9 +459,9 @@ const National: React.FC = () => {
                 ))}
             </select>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="subcounty"
-              value={candidateData.subcounty}
+              value={candidateData.subcounty || ""}
               onChange={handleInputChange}
             >
               <option value="">Select Subcounty</option>
@@ -404,7 +469,7 @@ const National: React.FC = () => {
                 ?.filter(
                   (subcounty: any) =>
                     subcounty.constituencyId ===
-                    parseInt(candidateData.constituency)
+                    parseInt(candidateData.constituency || "0")
                 )
                 .map((subcounty: any) => (
                   <option key={subcounty.id} value={subcounty.id}>
@@ -413,16 +478,17 @@ const National: React.FC = () => {
                 ))}
             </select>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="parish"
-              value={candidateData.parish}
+              value={candidateData.parish || ""}
               onChange={handleInputChange}
             >
               <option value="">Select Parish</option>
               {parishes
                 ?.filter(
                   (parish: any) =>
-                    parish.subcountyId === parseInt(candidateData.subcounty)
+                    parish.subcountyId ===
+                    parseInt(candidateData.subcounty || "0")
                 )
                 .map((parish: any) => (
                   <option key={parish.id} value={parish.id}>
@@ -432,16 +498,16 @@ const National: React.FC = () => {
             </select>
             {electionType !== "presidential" && (
               <select
-                className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+                className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
                 name="village"
-                value={candidateData.village}
+                value={candidateData.village || ""}
                 onChange={handleInputChange}
               >
                 <option value="">Select Village</option>
                 {villages
                   ?.filter(
                     (village: any) =>
-                      village.parishId === parseInt(candidateData.parish)
+                      village.parishId === parseInt(candidateData.parish || "0")
                   )
                   .map((village: any) => (
                     <option key={village.id} value={village.id}>
@@ -456,7 +522,7 @@ const National: React.FC = () => {
         {hasCity && (
           <>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="municipality"
               value={candidateData.municipality || ""}
               onChange={handleInputChange}
@@ -477,7 +543,7 @@ const National: React.FC = () => {
                 ))}
             </select>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="division"
               value={candidateData.division || ""}
               onChange={handleInputChange}
@@ -498,7 +564,7 @@ const National: React.FC = () => {
                 ))}
             </select>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="ward"
               value={candidateData.ward || ""}
               onChange={handleInputChange}
@@ -519,7 +585,7 @@ const National: React.FC = () => {
                 ))}
             </select>
             <select
-              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-blue-500"
+              className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
               name="cell"
               value={candidateData.cell || ""}
               onChange={handleInputChange}
@@ -546,7 +612,7 @@ const National: React.FC = () => {
 
         <button
           type="submit"
-          className="mt-4 w-full bg-blue-500 text-white py-2 rounded-md shadow-md hover:bg-blue-600"
+          className="mt-4 w-full bg-yellow-500 text-white py-2 rounded-md shadow-md hover:bg-yellow-600"
         >
           {editMode ? "Update Candidate" : "Submit Candidate"}
         </button>
@@ -564,6 +630,38 @@ const National: React.FC = () => {
 
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Registered Candidates</h2>
+
+        {/* Tabs */}
+        <div className="mb-4">
+          <button
+            className={`mr-2 px-4 py-2 rounded ${
+              activeTab === "all" ? "bg-yellow-500 text-white" : "bg-gray-200"
+            }`}
+            onClick={() => setActiveTab("all")}
+          >
+            All
+          </button>
+          {[
+            "cec",
+            "leagues",
+            "presidential",
+            "sigmps",
+            "eala",
+            "speakership",
+            "parliamentaryCaucus",
+          ].map((type) => (
+            <button
+              key={type}
+              className={`mr-2 px-4 py-2 rounded ${
+                activeTab === type ? "bg-yellow-500 text-white" : "bg-gray-200"
+              }`}
+              onClick={() => setActiveTab(type)}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -608,25 +706,25 @@ const National: React.FC = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Municipality/Constituency
+                  Constituency/Municipality
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Division/Subcounty
+                  Subcounty/Division
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Ward/Parish
+                  Parish/Ward
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Cell/Village
+                  Village/Cell
                 </th>
                 <th
                   scope="col"
@@ -649,9 +747,8 @@ const National: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {nationalCandidates?.map((candidate: Candidate, idx: number) => {
-                const hasCity = candidate.municipality !== undefined;
-                return (
+              {filterCandidatesByType(activeTab)?.map(
+                (candidate: Candidate, idx: number) => (
                   <tr key={idx}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -685,30 +782,46 @@ const National: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {hasCity
-                          ? getName(candidate.municipality, municipalities)
-                          : getName(candidate.constituency, constituencies)}
+                        {getLocationName(
+                          candidate,
+                          "municipality",
+                          "constituency",
+                          municipalities,
+                          constituencies
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {hasCity
-                          ? getName(candidate.division, divisions)
-                          : getName(candidate.subcounty, subcounties)}
+                        {getLocationName(
+                          candidate,
+                          "division",
+                          "subcounty",
+                          divisions,
+                          subcounties
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {hasCity
-                          ? getName(candidate.ward, wards)
-                          : getName(candidate.parish, parishes)}
+                        {getLocationName(
+                          candidate,
+                          "ward",
+                          "parish",
+                          wards,
+                          parishes
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {hasCity
-                          ? getName(candidate.cell, cells)
-                          : getName(candidate.village, villages)}
+                        {getLocationName(
+                          candidate,
+                          "cell",
+                          "village",
+                          cells,
+                          villages
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -736,8 +849,8 @@ const National: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                );
-              })}
+                )
+              )}
             </tbody>
           </table>
         </div>

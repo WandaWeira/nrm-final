@@ -162,7 +162,7 @@ const Sidebar = () => {
   // Electoral Positions
   const electoralPositions = [
     "National",
-    "Regional",
+    // "Regional",
     "Districts",
     "Constituencies-Municipalities",
     "Subcounties-Divisions",

@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import {
-  useGetNationalsQuery,
-  useUpdateNationalMutation,
+  useGetSubcountiesDivisionsCandidatesQuery,
+  useUpdateSubcountiesDivisionsCandidateMutation,
   useGetRegionsQuery,
   useGetSubregionsQuery,
   useGetDistrictsQuery,
@@ -23,6 +23,8 @@ interface Candidate {
   lastName: string;
   phoneNumber: string;
   category?: string;
+  position?: string;
+  councilorType?: string;
   region: string;
   subregion: string;
   district: string;
@@ -34,14 +36,14 @@ interface Candidate {
   division?: string;
   ward?: string;
   cell?: string;
-  nationalElectionType: string;
+  subcountiesDivisionsElectionType: string;
   isQualified: boolean;
   vote: number;
 }
 
-const NationalResults = () => {
-  const [updateNational] = useUpdateNationalMutation();
-  const { data: nationalCandidates, refetch } = useGetNationalsQuery({});
+const SubcountyDivisionResults = () => {
+  const [updateCandidate] = useUpdateSubcountiesDivisionsCandidateMutation();
+  const { data: candidates, refetch } = useGetSubcountiesDivisionsCandidatesQuery({});
   const [activeTab, setActiveTab] = useState("all");
 
   // Fetch location data
@@ -63,7 +65,7 @@ const NationalResults = () => {
 
   const handleVoteChange = async (id: string, votes: number) => {
     try {
-      await updateNational({ id, vote: votes }).unwrap();
+      await updateCandidate({ id, vote: votes }).unwrap();
       refetch();
     } catch (error) {
       console.error("Failed to update votes:", error);
@@ -93,18 +95,18 @@ const NationalResults = () => {
 
   const filterCandidatesByType = (type: string) => {
     const qualifiedCandidates =
-      nationalCandidates?.filter(
+      candidates?.filter(
         (candidate: Candidate) => candidate.isQualified
       ) || [];
     if (type === "all") return qualifiedCandidates;
     return qualifiedCandidates.filter(
-      (candidate: Candidate) => candidate.nationalElectionType === type
+      (candidate: Candidate) => candidate.subcountiesDivisionsElectionType === type
     );
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">National Election Results</h1>
+      <h1 className="text-2xl font-bold mb-4">Subcounty/Division Election Results</h1>
 
       {/* Tabs */}
       <div className="mb-4">
@@ -117,13 +119,10 @@ const NationalResults = () => {
           All
         </button>
         {[
-          "cec",
-          "leagues",
-          "presidential",
-          "sigmps",
-          "eala",
-          "speakership",
-          "parliamentaryCaucus",
+          "partyStructure",
+          "lc3",
+          "SubcountyCouncillors",
+          "SubcountySIGCouncillors",
         ].map((type) => (
           <button
             key={type}
@@ -176,6 +175,12 @@ const NationalResults = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Category
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Position
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Councilor Type
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Votes
@@ -261,12 +266,22 @@ const NationalResults = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {candidate.nationalElectionType}
+                    {candidate.subcountiesDivisionsElectionType}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
                     {candidate.category}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {candidate.position}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {candidate.councilorType}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -288,4 +303,4 @@ const NationalResults = () => {
   );
 };
 
-export default NationalResults;
+export default SubcountyDivisionResults;

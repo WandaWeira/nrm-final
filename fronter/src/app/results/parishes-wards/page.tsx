@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import {
-  useGetNationalsQuery,
-  useUpdateNationalMutation,
+  useGetParishesWardsCandidatesQuery,
+  useUpdateParishesWardsCandidateMutation,
   useGetRegionsQuery,
   useGetSubregionsQuery,
   useGetDistrictsQuery,
@@ -23,6 +23,7 @@ interface Candidate {
   lastName: string;
   phoneNumber: string;
   category?: string;
+  position?: string;
   region: string;
   subregion: string;
   district: string;
@@ -34,14 +35,14 @@ interface Candidate {
   division?: string;
   ward?: string;
   cell?: string;
-  nationalElectionType: string;
+  parishwardElectionType: string;
   isQualified: boolean;
   vote: number;
 }
 
-const NationalResults = () => {
-  const [updateNational] = useUpdateNationalMutation();
-  const { data: nationalCandidates, refetch } = useGetNationalsQuery({});
+const ParishWardResults = () => {
+  const [updateCandidate] = useUpdateParishesWardsCandidateMutation();
+  const { data: candidates, refetch } = useGetParishesWardsCandidatesQuery({});
   const [activeTab, setActiveTab] = useState("all");
 
   // Fetch location data
@@ -63,7 +64,7 @@ const NationalResults = () => {
 
   const handleVoteChange = async (id: string, votes: number) => {
     try {
-      await updateNational({ id, vote: votes }).unwrap();
+      await updateCandidate({ id, vote: votes }).unwrap();
       refetch();
     } catch (error) {
       console.error("Failed to update votes:", error);
@@ -93,18 +94,18 @@ const NationalResults = () => {
 
   const filterCandidatesByType = (type: string) => {
     const qualifiedCandidates =
-      nationalCandidates?.filter(
+      candidates?.filter(
         (candidate: Candidate) => candidate.isQualified
       ) || [];
     if (type === "all") return qualifiedCandidates;
     return qualifiedCandidates.filter(
-      (candidate: Candidate) => candidate.nationalElectionType === type
+      (candidate: Candidate) => candidate.parishwardElectionType === type
     );
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">National Election Results</h1>
+      <h1 className="text-2xl font-bold mb-4">Parish/Ward Election Results</h1>
 
       {/* Tabs */}
       <div className="mb-4">
@@ -116,15 +117,7 @@ const NationalResults = () => {
         >
           All
         </button>
-        {[
-          "cec",
-          "leagues",
-          "presidential",
-          "sigmps",
-          "eala",
-          "speakership",
-          "parliamentaryCaucus",
-        ].map((type) => (
+        {["partyStructure", "lc2"].map((type) => (
           <button
             key={type}
             className={`mr-2 px-4 py-2 rounded ${
@@ -132,7 +125,7 @@ const NationalResults = () => {
             }`}
             onClick={() => setActiveTab(type)}
           >
-            {type.charAt(0).toUpperCase() + type.slice(1)}
+            {type === "partyStructure" ? "Party Structure" : "LC2"}
           </button>
         ))}
       </div>
@@ -176,6 +169,9 @@ const NationalResults = () => {
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Category
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Position
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Votes
@@ -261,12 +257,17 @@ const NationalResults = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {candidate.nationalElectionType}
+                    {candidate.parishwardElectionType}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
                     {candidate.category}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {candidate.position}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -288,4 +289,4 @@ const NationalResults = () => {
   );
 };
 
-export default NationalResults;
+export default ParishWardResults;

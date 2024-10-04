@@ -1,26 +1,44 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import LoginPage from "@/app/login/page";
 import DashboardWrapper from "@/app/DashboardWrapper";
 
 function ClientLayoutSwitch({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-  }, [status, session]);
+    if (status !== "loading") {
+      setIsLoading(false);
+    }
+  }, [status]);
 
-  // If session is still loading, we show a loader
-  if (status === "loading") {
+  useEffect(() => {
+    // This effect will run on component mount and when the session changes
+    const handleStorageEvent = (event: StorageEvent) => {
+      if (event.key === "session") {
+        // Force a re-render when the session changes
+        setIsLoading(true);
+        setTimeout(() => setIsLoading(false), 0);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageEvent);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageEvent);
+    };
+  }, []);
+
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  // If session is not authenticated, we redirect to login
   if (status === "unauthenticated") {
     return <LoginPage />;
   }
 
-  // Once session is authenticated and valid, render the dashboard
   if (status === "authenticated" && session) {
     return <DashboardWrapper>{children}</DashboardWrapper>;
   }

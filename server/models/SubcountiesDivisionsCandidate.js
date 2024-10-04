@@ -81,6 +81,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: false,
       },
+      vote:{
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 0,
+      }
     }
   );
 

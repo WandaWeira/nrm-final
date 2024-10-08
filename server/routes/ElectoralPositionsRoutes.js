@@ -8,6 +8,7 @@ const {
   SubcountiesDivisionsCandidate,
   ConstituencyMunicipalityCandidate,
   DistrictCandidate,
+  NationalOppositionCandidate
 } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
@@ -248,5 +249,7 @@ createCRUDRoutes(
 );
 
 createCRUDRoutes(DistrictCandidate, "district-candidates");
+
+createCRUDRoutes(NationalOppositionCandidate, "national-opposition-candidates");
 
 module.exports = router;

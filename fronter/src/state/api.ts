@@ -135,6 +135,45 @@ export interface PollingStation {
   code: string;
 }
 
+export interface OppositionCandidate {
+  id: number;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  party: string;
+  electionType: 'village' | 'national' | 'constituency' | 'parish' | 'district' | 'subcounty';
+  vote: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+  status?: 'pending' | 'approved';
+  createdBy?: number;
+  updatedBy?: number;
+  approvedBy?: number;
+  isQualified?: boolean;
+}
+
+interface NationalOppositionCandidate {
+  id: string;
+  ninNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  category?: string;
+  region: string;
+  subregion: string;
+  district: string;
+  constituency?: string;
+  subcounty?: string;
+  parish?: string;
+  village?: string;
+  municipality?: string;
+  division?: string;
+  ward?: string;
+  cell?: string;
+  nationalElectionType: string;
+  vote: number;
+  party: string;
+}
 
 
 
@@ -161,7 +200,7 @@ export const api = createApi({
     'MunicipalityRegistrars','SubcountyRegistrars','DivisionRegistrars',
     'Candidate', 'VillageCellsCandidates', 'NationalCandidate','WardRegistrars','ParishRegistrars','VillageRegistrars',
     'CellRegistrars','ParishPollingStations','WardPollingStations','ParishesWardsCandidates','SubcountiesDivisionsCandidates',
-    'ConstituencyMunicipalityCandidates','DistrictCandidates'
+    'ConstituencyMunicipalityCandidates','DistrictCandidates','OppositionCandidates','NationalOppositionCandidate'
   ],
   endpoints: (build) => ({
     // Authentication
@@ -1120,8 +1159,39 @@ export const api = createApi({
       invalidatesTags: ['WardPollingStations'],
     }),
 
+///National opposition candidates
+getNationalOppositionCandidates: build.query<NationalOppositionCandidate[], void>({
+  query: () => 'national-opposition-candidates',
+  providesTags: ['NationalOppositionCandidate'],
+}),
 
+addNationalOppositionCandidate: build.mutation<NationalOppositionCandidate, Partial<NationalOppositionCandidate>>({
+  query: (newCandidate) => ({
+    url: 'national-opposition-candidates',
+    method: 'POST',
+    body: newCandidate,
+  }),
+  invalidatesTags: ['NationalOppositionCandidate'],
+}),
 
+updateNationalOppositionCandidate: build.mutation<NationalOppositionCandidate, Partial<NationalOppositionCandidate>>({
+  query: (updatedCandidate) => ({
+    url: `national-opposition-candidates/${updatedCandidate.id}`,
+    method: 'PUT',
+    body: updatedCandidate,
+  }),
+  invalidatesTags: ['NationalOppositionCandidate'],
+}),
+
+deleteNationalOppositionCandidate: build.mutation<void, string>({
+  query: (id) => ({
+    url: `national-opposition-candidates/${id}`,
+    method: 'DELETE',
+  }),
+  invalidatesTags: ['NationalOppositionCandidate'],
+}),
+
+///end opposition
 
 
   }),
@@ -1294,6 +1364,14 @@ export const {
   useCreateWardPollingStationMutation,
   useUpdateWardPollingStationMutation,
   useDeleteWardPollingStationMutation,
+
+  ///Opposition
+  useGetNationalOppositionCandidatesQuery,
+  useAddNationalOppositionCandidateMutation,
+  useUpdateNationalOppositionCandidateMutation,
+  useDeleteNationalOppositionCandidateMutation,
+
+  //end opposition
 
 
   //nominated

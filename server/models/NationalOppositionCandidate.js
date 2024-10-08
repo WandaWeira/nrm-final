@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
-  const SubcountiesDivisionsCandidate = sequelize.define(
-    "SubcountiesDivisionsCandidate",
+  const NationalOppositionCandidate = sequelize.define(
+    "NationalOppositionCandidate",
     {
       id: {
         type: DataTypes.INTEGER,
@@ -8,18 +8,6 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       category: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      position: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      councilorType: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      gender: {
         type: DataTypes.STRING,
         allowNull: true,
       },
@@ -67,37 +55,35 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      subcountiesDivisionsElectionType: {
+      nationalElectionType: {
         type: DataTypes.ENUM(
-          "partyStructure",
-          "lc3",
-          "SubcountyCouncillors",
-          "SubcountySIGCouncillors"
+          "cec",
+          "leagues",
+          "presidential",
+          "sigmps",
+          "eala",
+          "speakership",
+          "parliamentaryCaucus"
         ),
         allowNull: false,
       },
-      isQualified: {
-        type: DataTypes.BOOLEAN,
-        allowNull: true,
-        defaultValue: false,
-      },
-      vote:{
+      vote: {
         type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: 0,
-      }
+      },
+      party: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
     }
   );
 
-  SubcountiesDivisionsCandidate.associate = (models) => {
-    SubcountiesDivisionsCandidate.belongsTo(models.Candidate, {
-      foreignKey: "candidateId",
+  NationalOppositionCandidate.associate = (models) => {
+    NationalOppositionCandidate.belongsTo(models.OppositionCandidate, {
+      foreignKey: "oppositionCandidateId",
     });
-    // Add this line
-    // SubcountiesDivisionsCandidate.belongsTo(models.OppositionCandidate, {
-    //   foreignKey: "oppositionCandidateId",
-    // });
   };
 
-  return SubcountiesDivisionsCandidate;
+  return NationalOppositionCandidate;
 };

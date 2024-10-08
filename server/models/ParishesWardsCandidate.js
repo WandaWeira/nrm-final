@@ -77,6 +77,10 @@ module.exports = (sequelize, DataTypes) => {
     ParishesWardsCandidate.belongsTo(models.Candidate, {
       foreignKey: "candidateId",
     });
+    // Add this line
+    // ParishesWardsCandidate.belongsTo(models.OppositionCandidate, {
+    //   foreignKey: "oppositionCandidateId",
+    // });
   };
 
   return ParishesWardsCandidate;

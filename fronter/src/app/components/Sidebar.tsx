@@ -246,12 +246,22 @@ const Sidebar = () => {
           pathname={pathname} // Pass the pathname here
         />
 
-        <SidebarLink
+        <SidebarDropdown
+          label="Opposition"
+          icon={PieChart}
+          isCollaped={isSidebarCollapsed}
+          units={electoralPositions}
+          isOpen={openDropdown === "Opposition"}
+          toggleDropdown={() => toggleDropdown("Opposition")}
+          pathname={pathname} // Pass the pathname here
+        />
+
+        {/* <SidebarLink
           href="/settings"
           icon={SlidersHorizontalIcon}
           label="Settings"
           isCollaped={isSidebarCollapsed}
-        />
+        /> */}
       </div>
 
       {/* Footer */}

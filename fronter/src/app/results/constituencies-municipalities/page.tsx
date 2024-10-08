@@ -39,8 +39,10 @@ interface Candidate {
 }
 
 const ConstituencyMunicipalityResults = () => {
-  const [updateCandidate] = useUpdateConstituencyMunicipalityCandidateMutation();
-  const { data: candidates, refetch } = useGetConstituencyMunicipalityCandidatesQuery({});
+  const [updateCandidate] =
+    useUpdateConstituencyMunicipalityCandidateMutation();
+  const { data: candidates, refetch } =
+    useGetConstituencyMunicipalityCandidatesQuery({});
   const [activeTab, setActiveTab] = useState("all");
 
   // Fetch location data
@@ -92,18 +94,28 @@ const ConstituencyMunicipalityResults = () => {
 
   const filterCandidatesByType = (type: string) => {
     const qualifiedCandidates =
-      candidates?.filter(
-        (candidate: Candidate) => candidate.isQualified
-      ) || [];
+      candidates?.filter((candidate: Candidate) => candidate.isQualified) || [];
     if (type === "all") return qualifiedCandidates;
     return qualifiedCandidates.filter(
-      (candidate: Candidate) => candidate.constituencyMunicipalityElectionType === type
+      (candidate: Candidate) =>
+        candidate.constituencyMunicipalityElectionType === type
     );
+  };
+
+  const sortCandidates = (candidates: Candidate[]) => {
+    const sortedCandidates = [...candidates].sort((a, b) => b.vote - a.vote);
+    const highestVote = sortedCandidates[0]?.vote;
+    return sortedCandidates.map((candidate) => ({
+      ...candidate,
+      isWinner: candidate.vote === highestVote,
+    }));
   };
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Constituency/Municipality Election Results</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        Constituency/Municipality Election Results
+      </h1>
 
       {/* Tabs */}
       <div className="mb-4">
@@ -168,102 +180,128 @@ const ConstituencyMunicipalityResults = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Votes
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filterCandidatesByType(activeTab)?.map((candidate: Candidate) => (
-              <tr key={candidate.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {candidate.firstName} {candidate.lastName}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {candidate.ninNumber}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {candidate.phoneNumber}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getName(candidate.region, regions)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getName(candidate.subregion, subregions)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getName(candidate.district, districts)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getLocationName(
-                      candidate,
-                      "municipality",
-                      "constituency",
-                      municipalities,
-                      constituencies
+            {sortCandidates(filterCandidatesByType(activeTab))?.map(
+              (candidate: Candidate & { isWinner?: boolean }) => (
+                <tr
+                  key={candidate.id}
+                  // className={candidate.isWinner ? "bg-yellow-100" : ""}
+                  className={
+                    activeTab !== "all" && candidate.isWinner
+                      ? "bg-yellow-100"
+                      : ""
+                  }
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {candidate.firstName} {candidate.lastName}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {candidate.ninNumber}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {candidate.phoneNumber}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getName(candidate.region, regions)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getName(candidate.subregion, subregions)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getName(candidate.district, districts)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getLocationName(
+                        candidate,
+                        "municipality",
+                        "constituency",
+                        municipalities,
+                        constituencies
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getLocationName(
+                        candidate,
+                        "division",
+                        "subcounty",
+                        divisions,
+                        subcounties
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getLocationName(
+                        candidate,
+                        "ward",
+                        "parish",
+                        wards,
+                        parishes
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {getLocationName(
+                        candidate,
+                        "cell",
+                        "village",
+                        cells,
+                        villages
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">
+                      {candidate.constituencyMunicipalityElectionType}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="number"
+                      value={candidate.vote}
+                      onChange={(e) =>
+                        handleVoteChange(candidate.id, parseInt(e.target.value))
+                      }
+                      className="w-20 p-1 border rounded"
+                    />
+                  </td>
+                  {/* <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-bold text-green-600">
+                      {candidate.isWinner ? "Winner" : ""}
+                    </div>
+                  </td> */}
+
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {activeTab !== "all" && candidate.isWinner ? (
+                      <span className="text-green-600">Winner</span>
+                    ) : (
+                      <span className="text-gray-500">—</span> // Placeholder for non-winners or when on the "All" tab
                     )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getLocationName(
-                      candidate,
-                      "division",
-                      "subcounty",
-                      divisions,
-                      subcounties
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getLocationName(
-                      candidate,
-                      "ward",
-                      "parish",
-                      wards,
-                      parishes
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {getLocationName(
-                      candidate,
-                      "cell",
-                      "village",
-                      cells,
-                      villages
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    {candidate.constituencyMunicipalityElectionType}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <input
-                    type="number"
-                    value={candidate.vote}
-                    onChange={(e) =>
-                      handleVoteChange(candidate.id, parseInt(e.target.value))
-                    }
-                    className="w-20 p-1 border rounded"
-                  />
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              )
+            )}
           </tbody>
         </table>
       </div>

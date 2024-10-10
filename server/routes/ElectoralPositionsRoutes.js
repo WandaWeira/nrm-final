@@ -8,7 +8,8 @@ const {
   SubcountiesDivisionsCandidate,
   ConstituencyMunicipalityCandidate,
   DistrictCandidate,
-  NationalOppositionCandidate
+  NationalOppositionCandidate,
+  OppositionCandidate,
 } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
@@ -21,23 +22,30 @@ const createCRUDRoutes = (model, path) => {
     checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
     async (req, res) => {
       try {
-        const { ninNumber, firstName, lastName, phoneNumber, ...nationalData } =
+        const { ninNumber, firstName, lastName, phoneNumber, ...otherData } =
           req.body;
 
-        // First, create or find the Candidate
-        const [candidate, created] = await Candidate.findOrCreate({
+        let candidate;
+        let candidateModel =
+          model === NationalOppositionCandidate
+            ? OppositionCandidate
+            : Candidate;
+
+        // First, create or find the Candidate or OppositionCandidate
+        [candidate, created] = await candidateModel.findOrCreate({
           where: { ninNumber },
           defaults: {
             firstName,
             lastName,
             phoneNumber,
-            electionType: "national",
+            electionType:
+              model === NationalOppositionCandidate ? "opposition" : "national",
           },
         });
 
-        // Then, create the NationalCandidate
+        // Then, create the specific candidate type
         const item = await model.create({
-          ...nationalData,
+          ...otherData,
           candidateId: candidate.id,
           status: req.user.role === "SuperAdmin" ? "approved" : "pending",
           createdBy: req.user.id,
@@ -66,7 +74,10 @@ const createCRUDRoutes = (model, path) => {
         const items = await model.findAll({
           include: [
             {
-              model: Candidate,
+              model:
+                model === NationalOppositionCandidate
+                  ? OppositionCandidate
+                  : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
             },
           ],
@@ -74,10 +85,22 @@ const createCRUDRoutes = (model, path) => {
         res.json(
           items.map((item) => ({
             ...item.toJSON(),
-            firstName: item.Candidate?.firstName || "",
-            lastName: item.Candidate?.lastName || "",
-            phoneNumber: item.Candidate?.phoneNumber || "",
-            ninNumber: item.Candidate?.ninNumber || "",
+            firstName:
+              item.OppositionCandidate?.firstName ||
+              item.Candidate?.firstName ||
+              "",
+            lastName:
+              item.OppositionCandidate?.lastName ||
+              item.Candidate?.lastName ||
+              "",
+            phoneNumber:
+              item.OppositionCandidate?.phoneNumber ||
+              item.Candidate?.phoneNumber ||
+              "",
+            ninNumber:
+              item.OppositionCandidate?.ninNumber ||
+              item.Candidate?.ninNumber ||
+              "",
           }))
         );
       } catch (error) {
@@ -85,6 +108,7 @@ const createCRUDRoutes = (model, path) => {
       }
     }
   );
+
   // Read one
   router.get(
     `/${path}/:id`,
@@ -92,9 +116,37 @@ const createCRUDRoutes = (model, path) => {
     checkPermission("PEO"),
     async (req, res) => {
       try {
-        const item = await model.findByPk(req.params.id);
+        const item = await model.findByPk(req.params.id, {
+          include: [
+            {
+              model:
+                model === NationalOppositionCandidate
+                  ? OppositionCandidate
+                  : Candidate,
+              attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
+            },
+          ],
+        });
         if (item) {
-          res.json(item);
+          res.json({
+            ...item.toJSON(),
+            firstName:
+              item.OppositionCandidate?.firstName ||
+              item.Candidate?.firstName ||
+              "",
+            lastName:
+              item.OppositionCandidate?.lastName ||
+              item.Candidate?.lastName ||
+              "",
+            phoneNumber:
+              item.OppositionCandidate?.phoneNumber ||
+              item.Candidate?.phoneNumber ||
+              "",
+            ninNumber:
+              item.OppositionCandidate?.ninNumber ||
+              item.Candidate?.ninNumber ||
+              "",
+          });
         } else {
           res.status(404).json({ message: "Item not found" });
         }
@@ -118,12 +170,59 @@ const createCRUDRoutes = (model, path) => {
               .status(403)
               .json({ message: "Cannot modify an approved item" });
           }
+          const { ninNumber, firstName, lastName, phoneNumber, ...otherData } =
+            req.body;
+
+          // Update the associated Candidate or OppositionCandidate
+          const candidateModel =
+            model === NationalOppositionCandidate
+              ? OppositionCandidate
+              : Candidate;
+          await candidateModel.update(
+            { firstName, lastName, phoneNumber },
+            { where: { id: item.candidateId } }
+          );
+
+          // Update the specific candidate type
           await item.update({
-            ...req.body,
+            ...otherData,
             status: req.user.role === "SuperAdmin" ? "approved" : "pending",
             updatedBy: req.user.id,
           });
-          res.json(item);
+
+          const updatedItem = await model.findByPk(req.params.id, {
+            include: [
+              {
+                model: candidateModel,
+                attributes: [
+                  "firstName",
+                  "lastName",
+                  "phoneNumber",
+                  "ninNumber",
+                ],
+              },
+            ],
+          });
+
+          res.json({
+            ...updatedItem.toJSON(),
+            firstName:
+              updatedItem.OppositionCandidate?.firstName ||
+              updatedItem.Candidate?.firstName ||
+              "",
+            lastName:
+              updatedItem.OppositionCandidate?.lastName ||
+              updatedItem.Candidate?.lastName ||
+              "",
+            phoneNumber:
+              updatedItem.OppositionCandidate?.phoneNumber ||
+              updatedItem.Candidate?.phoneNumber ||
+              "",
+            ninNumber:
+              updatedItem.OppositionCandidate?.ninNumber ||
+              updatedItem.Candidate?.ninNumber ||
+              "",
+          });
         } else {
           res.status(404).json({ message: "Item not found" });
         }
@@ -213,7 +312,10 @@ const createCRUDRoutes = (model, path) => {
           where: { status: "approved" },
           include: [
             {
-              model: Candidate,
+              model:
+                model === NationalOppositionCandidate
+                  ? OppositionCandidate
+                  : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
             },
           ],
@@ -221,10 +323,22 @@ const createCRUDRoutes = (model, path) => {
         res.json(
           items.map((item) => ({
             ...item.toJSON(),
-            firstName: item.Candidate?.firstName || "",
-            lastName: item.Candidate?.lastName || "",
-            phoneNumber: item.Candidate?.phoneNumber || "",
-            ninNumber: item.Candidate?.ninNumber || "",
+            firstName:
+              item.OppositionCandidate?.firstName ||
+              item.Candidate?.firstName ||
+              "",
+            lastName:
+              item.OppositionCandidate?.lastName ||
+              item.Candidate?.lastName ||
+              "",
+            phoneNumber:
+              item.OppositionCandidate?.phoneNumber ||
+              item.Candidate?.phoneNumber ||
+              "",
+            ninNumber:
+              item.OppositionCandidate?.ninNumber ||
+              item.Candidate?.ninNumber ||
+              "",
           }))
         );
       } catch (error) {
@@ -236,6 +350,7 @@ const createCRUDRoutes = (model, path) => {
 
 // Create CRUD routes for each model
 createCRUDRoutes(Candidate, "candidates");
+createCRUDRoutes(OppositionCandidate, "opposition-candidates");
 createCRUDRoutes(VillageCellCandidate, "village-cell-candidates");
 createCRUDRoutes(NationalCandidate, "national");
 createCRUDRoutes(ParishesWardsCandidate, "parishes-wards-candidates");
@@ -247,9 +362,7 @@ createCRUDRoutes(
   ConstituencyMunicipalityCandidate,
   "constituency-municipality-candidates"
 );
-
 createCRUDRoutes(DistrictCandidate, "district-candidates");
-
 createCRUDRoutes(NationalOppositionCandidate, "national-opposition-candidates");
 
 module.exports = router;

@@ -1160,35 +1160,36 @@ export const api = createApi({
     }),
 
 ///National opposition candidates
-getNationalOppositionCandidates: build.query<NationalOppositionCandidate[], void>({
-  query: () => 'national-opposition-candidates',
-  providesTags: ['NationalOppositionCandidate'],
+
+// Get all National Opposition Candidates
+getNationalOppositionCandidates: build.query({
+  query: () => 'electoral-positions/national-opposition-candidates',
 }),
 
-addNationalOppositionCandidate: build.mutation<NationalOppositionCandidate, Partial<NationalOppositionCandidate>>({
-  query: (newCandidate) => ({
-    url: 'national-opposition-candidates',
+// Create a new National Opposition Candidate
+createNationalOppositionCandidate: build.mutation({
+  query: (candidate) => ({
+    url: 'electoral-positions/national-opposition-candidates',
     method: 'POST',
-    body: newCandidate,
+    body: candidate,
   }),
-  invalidatesTags: ['NationalOppositionCandidate'],
 }),
 
-updateNationalOppositionCandidate: build.mutation<NationalOppositionCandidate, Partial<NationalOppositionCandidate>>({
-  query: (updatedCandidate) => ({
-    url: `national-opposition-candidates/${updatedCandidate.id}`,
+// Update an existing National Opposition Candidate
+updateNationalOppositionCandidate: build.mutation({
+  query: (candidate) => ({
+    url: `electoral-positions/national-opposition-candidates/${candidate.id}`,
     method: 'PUT',
-    body: updatedCandidate,
+    body: candidate,
   }),
-  invalidatesTags: ['NationalOppositionCandidate'],
 }),
 
-deleteNationalOppositionCandidate: build.mutation<void, string>({
+// Delete a National Opposition Candidate
+deleteNationalOppositionCandidate: build.mutation({
   query: (id) => ({
-    url: `national-opposition-candidates/${id}`,
+    url: `electoral-positions/national-opposition-candidates/${id}`,
     method: 'DELETE',
   }),
-  invalidatesTags: ['NationalOppositionCandidate'],
 }),
 
 ///end opposition
@@ -1367,9 +1368,14 @@ export const {
 
   ///Opposition
   useGetNationalOppositionCandidatesQuery,
-  useAddNationalOppositionCandidateMutation,
+  useCreateNationalOppositionCandidateMutation,
   useUpdateNationalOppositionCandidateMutation,
   useDeleteNationalOppositionCandidateMutation,
+
+
+  // useGetNationalOppositionQuery,
+  // useUpdateNationalOppositionMutation,
+  // useAddNationalOppositionMutation,
 
   //end opposition
 

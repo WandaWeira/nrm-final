@@ -80,8 +80,6 @@ module.exports = (sequelize, DataTypes) => {
 
   NationalCandidate.associate = (models) => {
     NationalCandidate.belongsTo(models.Candidate, { foreignKey: 'candidateId' });
-    // Add this line
-    // NationalCandidate.belongsTo(models.OppositionCandidate, { foreignKey: 'oppositionCandidateId' });
   };
 
   return NationalCandidate;

@@ -1184,6 +1184,9 @@ updateNationalOppositionCandidate: build.mutation({
   }),
 }),
 
+
+
+
 // Delete a National Opposition Candidate
 deleteNationalOppositionCandidate: build.mutation({
   query: (id) => ({

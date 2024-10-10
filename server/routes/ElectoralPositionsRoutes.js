@@ -22,10 +22,14 @@ const createCRUDRoutes = (model, path) => {
     checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
     async (req, res) => {
       try {
-        const { ninNumber, firstName, lastName, phoneNumber, ...otherData } = req.body;
+        const { ninNumber, firstName, lastName, phoneNumber, ...otherData } =
+          req.body;
 
         let candidate;
-        let candidateModel = model === NationalOppositionCandidate ? OppositionCandidate : Candidate;
+        let candidateModel =
+          model === NationalOppositionCandidate
+            ? OppositionCandidate
+            : Candidate;
 
         // Create the Candidate or OppositionCandidate
         if (model === NationalOppositionCandidate) {
@@ -35,7 +39,7 @@ const createCRUDRoutes = (model, path) => {
             firstName,
             lastName,
             phoneNumber,
-            electionType: "opposition"
+            electionType: "opposition",
           });
         } else {
           // For regular candidates, find or create a Candidate
@@ -66,7 +70,7 @@ const createCRUDRoutes = (model, path) => {
             phoneNumber,
             ninNumber,
           });
-        }else{
+        } else {
           const item = await model.create({
             ...otherData,
             candidateId: candidate.id,
@@ -82,7 +86,6 @@ const createCRUDRoutes = (model, path) => {
             ninNumber,
           });
         }
-       
       } catch (error) {
         res.status(400).json({ error: error.message });
       }
@@ -284,19 +287,95 @@ const createCRUDRoutes = (model, path) => {
 
   // Approve an item (SuperAdmin only)
   router.put(
-    `/${path}/:id/approve`,
+    `/${path}/:id`,
     authMiddleware,
-    checkPermission("SuperAdmin"),
+    checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
     async (req, res) => {
       try {
         const item = await model.findByPk(req.params.id);
         if (item) {
-          await item.update({ status: "approved", approvedBy: req.user.id });
-          res.json(item);
+          if (req.user.role !== "SuperAdmin" && item.status === "approved") {
+            return res
+              .status(403)
+              .json({ message: "Cannot modify an approved item" });
+          }
+          const { ninNumber, firstName, lastName, phoneNumber, ...otherData } =
+            req.body;
+
+          // Determine if it's an opposition candidate
+          const isOppositionCandidate = model === NationalOppositionCandidate;
+
+          // Update the associated Candidate or OppositionCandidate
+          const candidateModel = isOppositionCandidate
+            ? OppositionCandidate
+            : Candidate;
+          const candidateIdField = isOppositionCandidate
+            ? "oppositionCandidateId"
+            : "candidateId";
+
+          if (item[candidateIdField]) {
+            await candidateModel.update(
+              { firstName, lastName, phoneNumber, ninNumber },
+              { where: { id: item[candidateIdField] } }
+            );
+          } else {
+            console.error(`No ${candidateIdField} found for item:`, item);
+            return res
+              .status(400)
+              .json({
+                error: `No associated ${
+                  isOppositionCandidate ? "OppositionCandidate" : "Candidate"
+                } found`,
+              });
+          }
+
+          // Update the specific candidate type
+          await item.update({
+            ...otherData,
+            status: req.user.role === "SuperAdmin" ? "approved" : "pending",
+            updatedBy: req.user.id,
+          });
+
+          const updatedItem = await model.findByPk(req.params.id, {
+            include: [
+              {
+                model: candidateModel,
+                attributes: [
+                  "firstName",
+                  "lastName",
+                  "phoneNumber",
+                  "ninNumber",
+                ],
+              },
+            ],
+          });
+
+          if (!updatedItem) {
+            return res.status(404).json({ message: "Updated item not found" });
+          }
+
+          const associatedCandidate = isOppositionCandidate
+            ? updatedItem.OppositionCandidate
+            : updatedItem.Candidate;
+
+          if (!associatedCandidate) {
+            return res
+              .status(404)
+              .json({ message: "Associated candidate not found" });
+          }
+
+          res.json({
+            ...updatedItem.toJSON(),
+            firstName: associatedCandidate.firstName || "",
+            lastName: associatedCandidate.lastName || "",
+            phoneNumber: associatedCandidate.phoneNumber || "",
+            ninNumber: associatedCandidate.ninNumber || "",
+          });
         } else {
           res.status(404).json({ message: "Item not found" });
         }
       } catch (error) {
+        console.error("Error updating candidate:", error);
         res.status(400).json({ error: error.message });
       }
     }

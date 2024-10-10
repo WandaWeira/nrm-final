@@ -22,42 +22,67 @@ const createCRUDRoutes = (model, path) => {
     checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
     async (req, res) => {
       try {
-        const { ninNumber, firstName, lastName, phoneNumber, ...otherData } =
-          req.body;
+        const { ninNumber, firstName, lastName, phoneNumber, ...otherData } = req.body;
 
         let candidate;
-        let candidateModel =
-          model === NationalOppositionCandidate
-            ? OppositionCandidate
-            : Candidate;
+        let candidateModel = model === NationalOppositionCandidate ? OppositionCandidate : Candidate;
 
-        // First, create or find the Candidate or OppositionCandidate
-        [candidate, created] = await candidateModel.findOrCreate({
-          where: { ninNumber },
-          defaults: {
+        // Create the Candidate or OppositionCandidate
+        if (model === NationalOppositionCandidate) {
+          // For opposition candidates, always create a new OppositionCandidate
+          candidate = await OppositionCandidate.create({
+            ninNumber,
             firstName,
             lastName,
             phoneNumber,
-            electionType:
-              model === NationalOppositionCandidate ? "opposition" : "national",
-          },
-        });
+            electionType: "opposition"
+          });
+        } else {
+          // For regular candidates, find or create a Candidate
+          [candidate, created] = await Candidate.findOrCreate({
+            where: { ninNumber },
+            defaults: {
+              firstName,
+              lastName,
+              phoneNumber,
+              electionType: "national",
+            },
+          });
+        }
 
         // Then, create the specific candidate type
-        const item = await model.create({
-          ...otherData,
-          candidateId: candidate.id,
-          status: req.user.role === "SuperAdmin" ? "approved" : "pending",
-          createdBy: req.user.id,
-        });
+        if (model === NationalOppositionCandidate) {
+          const item = await model.create({
+            ...otherData,
+            oppositionCandidateId: candidate.id,
+            status: req.user.role === "SuperAdmin" ? "approved" : "pending",
+            createdBy: req.user.id,
+          });
 
-        res.status(201).json({
-          ...item.toJSON(),
-          firstName,
-          lastName,
-          phoneNumber,
-          ninNumber,
-        });
+          res.status(201).json({
+            ...item.toJSON(),
+            firstName,
+            lastName,
+            phoneNumber,
+            ninNumber,
+          });
+        }else{
+          const item = await model.create({
+            ...otherData,
+            candidateId: candidate.id,
+            status: req.user.role === "SuperAdmin" ? "approved" : "pending",
+            createdBy: req.user.id,
+          });
+
+          res.status(201).json({
+            ...item.toJSON(),
+            firstName,
+            lastName,
+            phoneNumber,
+            ninNumber,
+          });
+        }
+       
       } catch (error) {
         res.status(400).json({ error: error.message });
       }

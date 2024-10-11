@@ -10,6 +10,7 @@ const {
   DistrictCandidate,
   NationalOppositionCandidate,
   OppositionCandidate,
+  DistrictOppositionCandidate,
 } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
@@ -27,12 +28,16 @@ const createCRUDRoutes = (model, path) => {
 
         let candidate;
         let candidateModel =
-          model === NationalOppositionCandidate
+          model === NationalOppositionCandidate ||
+          model === DistrictOppositionCandidate
             ? OppositionCandidate
             : Candidate;
 
         // Create the Candidate or OppositionCandidate
-        if (model === NationalOppositionCandidate) {
+        if (
+          model === NationalOppositionCandidate ||
+          model === DistrictOppositionCandidate
+        ) {
           // For opposition candidates, always create a new OppositionCandidate
           candidate = await OppositionCandidate.create({
             ninNumber,
@@ -55,7 +60,10 @@ const createCRUDRoutes = (model, path) => {
         }
 
         // Then, create the specific candidate type
-        if (model === NationalOppositionCandidate) {
+        if (
+          model === NationalOppositionCandidate ||
+          model === DistrictOppositionCandidate
+        ) {
           const item = await model.create({
             ...otherData,
             oppositionCandidateId: candidate.id,
@@ -103,7 +111,8 @@ const createCRUDRoutes = (model, path) => {
           include: [
             {
               model:
-                model === NationalOppositionCandidate
+                model === NationalOppositionCandidate ||
+                model === DistrictOppositionCandidate
                   ? OppositionCandidate
                   : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
@@ -148,7 +157,8 @@ const createCRUDRoutes = (model, path) => {
           include: [
             {
               model:
-                model === NationalOppositionCandidate
+                model === NationalOppositionCandidate ||
+                model === DistrictOppositionCandidate
                   ? OppositionCandidate
                   : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
@@ -203,12 +213,13 @@ const createCRUDRoutes = (model, path) => {
 
           // Update the associated Candidate or OppositionCandidate
           const candidateModel =
-            model === NationalOppositionCandidate
+            model === NationalOppositionCandidate ||
+            model === DistrictOppositionCandidate
               ? OppositionCandidate
               : Candidate;
           await candidateModel.update(
             { firstName, lastName, phoneNumber },
-            { where: { id: item.candidateId } }
+            { where: { id: item.candidateId || item.oppositionCandidateId } }
           );
 
           // Update the specific candidate type
@@ -287,7 +298,7 @@ const createCRUDRoutes = (model, path) => {
 
   // Approve an item (SuperAdmin only)
   router.put(
-    `/${path}/:id`,
+    `/${path}/:id/approve`,
     authMiddleware,
     checkPermission(["SuperAdmin", "DistrictRegistra", "RegionalCoordinator"]),
     async (req, res) => {
@@ -303,7 +314,9 @@ const createCRUDRoutes = (model, path) => {
             req.body;
 
           // Determine if it's an opposition candidate
-          const isOppositionCandidate = model === NationalOppositionCandidate;
+          const isOppositionCandidate =
+            model === NationalOppositionCandidate ||
+            model === DistrictOppositionCandidate;
 
           // Update the associated Candidate or OppositionCandidate
           const candidateModel = isOppositionCandidate
@@ -320,13 +333,11 @@ const createCRUDRoutes = (model, path) => {
             );
           } else {
             console.error(`No ${candidateIdField} found for item:`, item);
-            return res
-              .status(400)
-              .json({
-                error: `No associated ${
-                  isOppositionCandidate ? "OppositionCandidate" : "Candidate"
-                } found`,
-              });
+            return res.status(400).json({
+              error: `No associated ${
+                isOppositionCandidate ? "OppositionCandidate" : "Candidate"
+              } found`,
+            });
           }
 
           // Update the specific candidate type
@@ -417,7 +428,8 @@ const createCRUDRoutes = (model, path) => {
           include: [
             {
               model:
-                model === NationalOppositionCandidate
+                model === NationalOppositionCandidate ||
+                model === DistrictOppositionCandidate
                   ? OppositionCandidate
                   : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
@@ -468,5 +480,6 @@ createCRUDRoutes(
 );
 createCRUDRoutes(DistrictCandidate, "district-candidates");
 createCRUDRoutes(NationalOppositionCandidate, "national-opposition-candidates");
+createCRUDRoutes(DistrictOppositionCandidate, "district-opposition-candidates");
 
 module.exports = router;

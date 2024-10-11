@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import {
-  useGetNationalsQuery,
   useGetRegionsQuery,
   useGetSubregionsQuery,
   useGetDistrictsQuery,
@@ -18,6 +17,7 @@ import {
   useGetNationalOppositionCandidatesQuery,
   useUpdateNationalOppositionCandidateMutation,
   useDeleteNationalOppositionCandidateMutation,
+  useGetNationalsQuery,
 } from "@/state/api";
 
 interface Candidate {
@@ -66,7 +66,7 @@ interface OppositionCandidate {
   party: string;
 }
 
-const NationalOpposition = () => {
+const NationalOpposition: React.FC = () => {
   const { data: nationalCandidates } = useGetNationalsQuery({});
   const { data: oppositionCandidates, refetch } =
     useGetNationalOppositionCandidatesQuery({});
@@ -76,10 +76,25 @@ const NationalOpposition = () => {
     useUpdateNationalOppositionCandidateMutation();
   const [deleteOppositionCandidate] =
     useDeleteNationalOppositionCandidateMutation();
-  const [activeTab, setActiveTab] = useState("");
+
+  const { data: regions } = useGetRegionsQuery();
+  const { data: subregions } = useGetSubregionsQuery();
+  const { data: districts } = useGetDistrictsQuery();
+  const { data: constituencies } = useGetConstituenciesQuery();
+  const { data: subcounties } = useGetSubcountiesQuery();
+  const { data: parishes } = useGetParishesQuery();
+  const { data: villages } = useGetVillagesQuery();
+  const { data: municipalities } = useGetMunicipalitiesQuery();
+  const { data: divisions } = useGetDivisionsQuery();
+  const { data: wards } = useGetWardsQuery();
+  const { data: cells } = useGetCellsQuery();
+
+  const [activeTab, setActiveTab] = useState<string>("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState("");
   const [editMode, setEditMode] = useState(false);
+  const [hasCity, setHasCity] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [oppositionCandidate, setOppositionCandidate] =
     useState<OppositionCandidate>({
       ninNumber: "",
@@ -103,24 +118,131 @@ const NationalOpposition = () => {
       party: "",
     });
 
-  // Fetch location data
-  const { data: regions } = useGetRegionsQuery();
-  const { data: subregions } = useGetSubregionsQuery();
-  const { data: districts } = useGetDistrictsQuery();
-  const { data: constituencies } = useGetConstituenciesQuery();
-  const { data: subcounties } = useGetSubcountiesQuery();
-  const { data: parishes } = useGetParishesQuery();
-  const { data: villages } = useGetVillagesQuery();
-  const { data: municipalities } = useGetMunicipalitiesQuery();
-  const { data: divisions } = useGetDivisionsQuery();
-  const { data: wards } = useGetWardsQuery();
-  const { data: cells } = useGetCellsQuery();
-
-  const [hasCity, setHasCity] = useState(false);
+  const categoryOptions = {
+    cec: [
+      "Chairman",
+      "Vice Chairman",
+      "2nd Vice Chairman",
+      "Vice Chairman Karamoja Region",
+      "Vice Chairman Eastern Region",
+      "Vice Chairman Northern Region",
+      "Vice Chairman Central Region",
+      "Vice Chairman Kampala Region",
+      "Vice Chairman Western Region",
+    ],
+    leagues: [
+      "Elders",
+      "Youth",
+      "Women",
+      "PWDS",
+      "Veterans",
+      "Workers",
+      "Entrepreneurs",
+      "Historicals",
+      "Diaspora",
+      "Institutions",
+    ],
+    sigmps: ["Workers MP", "PEDS MP", "YOUTH MP", "OLDER PERSONS MP"],
+  };
 
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setOppositionCandidate((prev) => ({
+      ...prev,
+      [name]: value === "" ? undefined : value,
+    }));
+
+    if (name === "district") {
+      const selectedDistrict = districts?.find(
+        (d) => d.id.toString() === value
+      );
+      setHasCity(selectedDistrict?.hasCity || false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const dataToSubmit = { ...oppositionCandidate };
+
+      Object.keys(dataToSubmit).forEach(
+        (key) =>
+          dataToSubmit[key as keyof OppositionCandidate] === undefined &&
+          delete dataToSubmit[key as keyof OppositionCandidate]
+      );
+
+      if (editMode && oppositionCandidate.id) {
+        await updateOppositionCandidate(dataToSubmit).unwrap();
+      } else {
+        await createOppositionCandidate(dataToSubmit).unwrap();
+      }
+      refetch();
+      alert(
+        `Opposition candidate ${editMode ? "updated" : "added"} successfully!`
+      );
+      setIsPopupOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error(
+        `Failed to ${editMode ? "update" : "add"} opposition candidate:`,
+        error
+      );
+      alert(
+        `Failed to ${
+          editMode ? "update" : "add"
+        } opposition candidate. Please try again.`
+      );
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this opposition candidate?"
+      )
+    ) {
+      try {
+        await deleteOppositionCandidate(id).unwrap();
+        refetch();
+        alert("Opposition candidate deleted successfully!");
+      } catch (error) {
+        console.error("Failed to delete opposition candidate:", error);
+        alert("Failed to delete opposition candidate. Please try again.");
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setOppositionCandidate({
+      ninNumber: "",
+      firstName: "",
+      lastName: "",
+      phoneNumber: "",
+      category: "",
+      region: "",
+      subregion: "",
+      district: "",
+      constituency: "",
+      subcounty: "",
+      parish: "",
+      village: "",
+      municipality: "",
+      division: "",
+      ward: "",
+      cell: "",
+      nationalElectionType: "",
+      vote: 0,
+      party: "",
+    });
+    setEditMode(false);
+    setHasCity(false);
+  };
 
   const getName = (id: string | undefined, dataArray: any[] | undefined) => {
     if (!id || !dataArray) return "";
@@ -166,85 +288,8 @@ const NationalOpposition = () => {
     return groupWinnersByTypeAndCategory(nationalCandidates || []);
   }, [nationalCandidates]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setOppositionCandidate((prev) => ({
-      ...prev,
-      [name]: value === "" ? undefined : value,
-    }));
-
-    if (name === "district") {
-      const selectedDistrict = districts?.find(
-        (d) => d.id.toString() === value
-      );
-      setHasCity(selectedDistrict?.hasCity || false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editMode && oppositionCandidate.id) {
-        await updateOppositionCandidate(oppositionCandidate).unwrap();
-      } else {
-        await createOppositionCandidate(oppositionCandidate).unwrap();
-      }
-      refetch();
-      alert(
-        `Opposition candidate ${editMode ? "updated" : "added"} successfully!`
-      );
-      setIsPopupOpen(false);
-      setEditMode(false);
-      setOppositionCandidate({
-        ninNumber: "",
-        firstName: "",
-        lastName: "",
-        phoneNumber: "",
-        category: "",
-        region: "",
-        subregion: "",
-        district: "",
-        constituency: "",
-        subcounty: "",
-        parish: "",
-        village: "",
-        municipality: "",
-        division: "",
-        ward: "",
-        cell: "",
-        nationalElectionType: "",
-        vote: 0,
-        party: "",
-      });
-    } catch (error) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} opposition candidate:`,
-        error
-      );
-      alert(
-        `Failed to ${
-          editMode ? "update" : "add"
-        } opposition candidate. Please try again.`
-      );
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this opposition candidate?"
-      )
-    ) {
-      try {
-        await deleteOppositionCandidate(id).unwrap();
-        alert("Opposition candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete opposition candidate:", error);
-        alert("Failed to delete opposition candidate. Please try again.");
-      }
-    }
+  const toggleRowExpansion = (id: string) => {
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const renderCandidateRow = (
@@ -252,147 +297,126 @@ const NationalOpposition = () => {
     bgColor: string,
     isOpposition: boolean = false
   ) => (
-    <tr className={bgColor} key={candidate.id}>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm font-medium text-gray-900">
-          {candidate.firstName} {candidate.lastName}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">{candidate.ninNumber}</div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">{candidate.phoneNumber}</div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getName(candidate.region, regions)}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getName(candidate.subregion, subregions)}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getName(candidate.district, districts)}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getLocationName(
-            candidate,
-            "municipality",
-            "constituency",
-            municipalities,
-            constituencies
-          )}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getLocationName(
-            candidate,
-            "division",
-            "subcounty",
-            divisions,
-            subcounties
-          )}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getLocationName(candidate, "ward", "parish", wards, parishes)}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {getLocationName(candidate, "cell", "village", cells, villages)}
-        </div>
-      </td>
-      <td className="px-3 py-2 whitespace-nowrap">
-        <div className="text-sm text-gray-500">{candidate.vote}</div>
-      </td>
-      {"party" in candidate && (
-        <td className="px-3 py-2 whitespace-nowrap">
-          <div className="text-sm text-gray-500">{candidate.party}</div>
-        </td>
-      )}
-      {isOpposition && (
-        <td className="px-3 py-2 whitespace-nowrap">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                setCurrentCategory(candidate.category || "");
-                setIsPopupOpen(true);
-                setEditMode(true);
-                setOppositionCandidate(candidate as OppositionCandidate);
-              }}
-              className="text-blue-500 hover:text-blue-700"
-            >
-              <Pencil size={18} />
-            </button>
-            <button
-              onClick={() => handleDelete(candidate.id as string)}
-              className="text-red-500 hover:text-red-700"
-            >
-              <Trash2 size={18} />
-            </button>
+    <React.Fragment key={candidate.id}>
+      <tr
+        className={`${bgColor} cursor-pointer`}
+        onClick={() => toggleRowExpansion(candidate.id as string)}
+      >
+        <td className="px-3 py-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-900">
+              {candidate.firstName} {candidate.lastName}
+            </span>
+            {expandedRows[candidate.id as string] ? (
+              <ChevronUp size={18} />
+            ) : (
+              <ChevronDown size={18} />
+            )}
           </div>
         </td>
+      </tr>
+      {expandedRows[candidate.id as string] && (
+        <tr className={bgColor}>
+          <td className="px-3 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              <div>
+                <strong>NIN:</strong> {candidate.ninNumber}
+              </div>
+              <div>
+                <strong>Phone:</strong> {candidate.phoneNumber}
+              </div>
+              <div>
+                <strong>Region:</strong> {getName(candidate.region, regions)}
+              </div>
+              <div>
+                <strong>Subregion:</strong>{" "}
+                {getName(candidate.subregion, subregions)}
+              </div>
+              <div>
+                <strong>District:</strong>{" "}
+                {getName(candidate.district, districts)}
+              </div>
+              <div>
+                <strong>Constituency/Municipality:</strong>{" "}
+                {getLocationName(
+                  candidate,
+                  "municipality",
+                  "constituency",
+                  municipalities,
+                  constituencies
+                )}
+              </div>
+              <div>
+                <strong>Subcounty/Division:</strong>{" "}
+                {getLocationName(
+                  candidate,
+                  "division",
+                  "subcounty",
+                  divisions,
+                  subcounties
+                )}
+              </div>
+              <div>
+                <strong>Parish/Ward:</strong>{" "}
+                {getLocationName(candidate, "ward", "parish", wards, parishes)}
+              </div>
+              <div>
+                <strong>Village/Cell:</strong>{" "}
+                {getLocationName(candidate, "cell", "village", cells, villages)}
+              </div>
+              <div>
+                <strong>Votes:</strong> {candidate.vote}
+              </div>
+              {"party" in candidate && (
+                <div>
+                  <strong>Party:</strong> {candidate.party}
+                </div>
+              )}
+            </div>
+            {isOpposition && (
+              <div className="mt-2 flex justify-end space-x-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentCategory(candidate.category || "");
+                    setIsPopupOpen(true);
+                    setEditMode(true);
+                    setOppositionCandidate(candidate as OppositionCandidate);
+                  }}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <Pencil size={18} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(candidate.id as string);
+                  }}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          </td>
+        </tr>
       )}
-    </tr>
+    </React.Fragment>
   );
 
   const renderWinnerTable = (winner: Candidate, category: string) => (
     <div
       key={`${winner.nationalElectionType}-${category}-winner`}
-      className="mb-8 overflow-x-auto"
+      className="mb-8"
     >
       <h3 className="text-lg font-semibold mb-2">Winner - {category}</h3>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              NIN
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Phone
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Region
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Subregion
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              District
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Constituency/Municipality
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Subcounty/Division
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Parish/Ward
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Village/Cell
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Votes
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {renderCandidateRow(winner, "bg-yellow-100")}
-        </tbody>
-      </table>
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200">
+            {renderCandidateRow(winner, "bg-yellow-100")}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
@@ -402,10 +426,12 @@ const NationalOpposition = () => {
   ) => (
     <div
       key={`${oppositionCandidates[0].nationalElectionType}-${category}-opposition`}
-      className="mb-8 overflow-x-auto"
+      className="mb-8"
     >
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-semibold">Opposition - {category}</h3>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+        <h3 className="text-lg font-semibold mb-2 sm:mb-0">
+          Opposition - {category}
+        </h3>
         <button
           onClick={() => {
             setCurrentCategory(category);
@@ -439,58 +465,44 @@ const NationalOpposition = () => {
           Add Opposition Candidate
         </button>
       </div>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              NIN
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Phone
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Region
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Subregion
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              District
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Constituency/Municipality
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Subcounty/Division
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Parish/Ward
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Village/Cell
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Votes
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Party
-            </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {oppositionCandidates.map((candidate) =>
-            renderCandidateRow(candidate, "bg-red-100", true)
-          )}
-        </tbody>
-      </table>
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200">
+            {oppositionCandidates.map((candidate) =>
+              renderCandidateRow(candidate, "bg-red-100", true)
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
+
+  const renderFormFields = () => {
+    switch (oppositionCandidate.nationalElectionType) {
+      case "cec":
+      case "leagues":
+      case "sigmps":
+        return (
+          <select
+            className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+            name="category"
+            value={oppositionCandidate.category}
+            onChange={handleInputChange}
+          >
+            <option value="">Select Category</option>
+            {categoryOptions[
+              oppositionCandidate.nationalElectionType as keyof typeof categoryOptions
+            ].map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -634,20 +646,20 @@ const NationalOpposition = () => {
 
       {/* Popup for adding/editing opposition candidate */}
       {isPopupOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
             <h3 className="text-lg font-bold mb-4">
               {editMode ? "Edit" : "Add"} Opposition Candidate for{" "}
               {currentCategory}
             </h3>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
                 name="ninNumber"
                 value={oppositionCandidate.ninNumber}
                 onChange={handleInputChange}
                 placeholder="NIN Number"
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               />
               <input
@@ -656,7 +668,7 @@ const NationalOpposition = () => {
                 value={oppositionCandidate.firstName}
                 onChange={handleInputChange}
                 placeholder="First Name"
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               />
               <input
@@ -665,7 +677,7 @@ const NationalOpposition = () => {
                 value={oppositionCandidate.lastName}
                 onChange={handleInputChange}
                 placeholder="Last Name"
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               />
               <input
@@ -674,7 +686,7 @@ const NationalOpposition = () => {
                 value={oppositionCandidate.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="Phone Number"
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               />
               <input
@@ -683,14 +695,15 @@ const NationalOpposition = () => {
                 value={oppositionCandidate.party}
                 onChange={handleInputChange}
                 placeholder="Party"
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               />
+              {renderFormFields()}
               <select
                 name="region"
                 value={oppositionCandidate.region}
                 onChange={handleInputChange}
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               >
                 <option value="">Select Region</option>
@@ -704,7 +717,7 @@ const NationalOpposition = () => {
                 name="subregion"
                 value={oppositionCandidate.subregion}
                 onChange={handleInputChange}
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               >
                 <option value="">Select Subregion</option>
@@ -724,7 +737,7 @@ const NationalOpposition = () => {
                 name="district"
                 value={oppositionCandidate.district}
                 onChange={handleInputChange}
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               >
                 <option value="">Select District</option>
@@ -743,7 +756,7 @@ const NationalOpposition = () => {
               {!hasCity && (
                 <>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="constituency"
                     value={oppositionCandidate.constituency || ""}
                     onChange={handleInputChange}
@@ -762,7 +775,7 @@ const NationalOpposition = () => {
                       ))}
                   </select>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="subcounty"
                     value={oppositionCandidate.subcounty || ""}
                     onChange={handleInputChange}
@@ -781,7 +794,7 @@ const NationalOpposition = () => {
                       ))}
                   </select>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="parish"
                     value={oppositionCandidate.parish || ""}
                     onChange={handleInputChange}
@@ -800,7 +813,7 @@ const NationalOpposition = () => {
                       ))}
                   </select>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="village"
                     value={oppositionCandidate.village || ""}
                     onChange={handleInputChange}
@@ -824,7 +837,7 @@ const NationalOpposition = () => {
               {hasCity && (
                 <>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="municipality"
                     value={oppositionCandidate.municipality || ""}
                     onChange={handleInputChange}
@@ -846,7 +859,7 @@ const NationalOpposition = () => {
                       ))}
                   </select>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="division"
                     value={oppositionCandidate.division || ""}
                     onChange={handleInputChange}
@@ -870,7 +883,7 @@ const NationalOpposition = () => {
                       ))}
                   </select>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="ward"
                     value={oppositionCandidate.ward || ""}
                     onChange={handleInputChange}
@@ -891,7 +904,7 @@ const NationalOpposition = () => {
                       ))}
                   </select>
                   <select
-                    className="block w-full p-2 mt-2 border rounded-md shadow-sm focus:border-yellow-500"
+                    className="w-full p-2 border rounded"
                     name="cell"
                     value={oppositionCandidate.cell || ""}
                     onChange={handleInputChange}
@@ -919,13 +932,13 @@ const NationalOpposition = () => {
                 value={oppositionCandidate.vote}
                 onChange={handleInputChange}
                 placeholder="Votes"
-                className="mb-2 w-full p-2 border rounded"
+                className="w-full p-2 border rounded"
                 required
               />
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end space-x-2">
                 <button
                   type="submit"
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                 >
                   {editMode ? "Update" : "Add"} Candidate
                 </button>

@@ -175,6 +175,29 @@ interface NationalOppositionCandidate {
   party: string;
 }
 
+interface DistrictOppositionCandidate {
+  id?: string;
+  ninNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  category?: string;
+  region: string;
+  subregion: string;
+  district: string;
+  constituency?: string;
+  subcounty?: string;
+  parish?: string;
+  village?: string;
+  municipality?: string;
+  division?: string;
+  ward?: string;
+  cell?: string;
+  districtElectionType: string;
+  vote: number;
+  party: string;
+}
+
 
 
 // Define the API
@@ -200,7 +223,8 @@ export const api = createApi({
     'MunicipalityRegistrars','SubcountyRegistrars','DivisionRegistrars',
     'Candidate', 'VillageCellsCandidates', 'NationalCandidate','WardRegistrars','ParishRegistrars','VillageRegistrars',
     'CellRegistrars','ParishPollingStations','WardPollingStations','ParishesWardsCandidates','SubcountiesDivisionsCandidates',
-    'ConstituencyMunicipalityCandidates','DistrictCandidates','OppositionCandidates','NationalOppositionCandidate'
+    'ConstituencyMunicipalityCandidates','DistrictCandidates','OppositionCandidates','NationalOppositionCandidate',
+    'DistrictOppositionCandidates'
   ],
   endpoints: (build) => ({
     // Authentication
@@ -1184,15 +1208,47 @@ updateNationalOppositionCandidate: build.mutation({
   }),
 }),
 
-
-
-
 // Delete a National Opposition Candidate
 deleteNationalOppositionCandidate: build.mutation({
   query: (id) => ({
     url: `electoral-positions/national-opposition-candidates/${id}`,
     method: 'DELETE',
   }),
+}),
+
+
+
+
+
+getDistrictOppositionCandidates: build.query<DistrictOppositionCandidate[], void>({
+  query: () => 'electoral-positions/district-opposition-candidates',
+  providesTags: ['DistrictOppositionCandidates'],
+}),
+
+createDistrictOppositionCandidate: build.mutation<DistrictOppositionCandidate, Partial<DistrictOppositionCandidate>>({
+  query: (candidate) => ({
+    url: 'electoral-positions/district-opposition-candidates',
+    method: 'POST',
+    body: candidate,
+  }),
+  invalidatesTags: ['DistrictOppositionCandidates'],
+}),
+
+updateDistrictOppositionCandidate: build.mutation<DistrictOppositionCandidate, Partial<DistrictOppositionCandidate>>({
+  query: (candidate) => ({
+    url: `electoral-positions/district-opposition-candidates/${candidate.id}`,
+    method: 'PUT',
+    body: candidate,
+  }),
+  invalidatesTags: ['DistrictOppositionCandidates'],
+}),
+
+deleteDistrictOppositionCandidate: build.mutation<{ success: boolean; id: string }, string>({
+  query: (id) => ({
+    url: `electoral-positions/district-opposition-candidates/${id}`,
+    method: 'DELETE',
+  }),
+  invalidatesTags: ['DistrictOppositionCandidates'],
 }),
 
 ///end opposition
@@ -1374,6 +1430,12 @@ export const {
   useCreateNationalOppositionCandidateMutation,
   useUpdateNationalOppositionCandidateMutation,
   useDeleteNationalOppositionCandidateMutation,
+
+
+  useGetDistrictOppositionCandidatesQuery,
+  useCreateDistrictOppositionCandidateMutation,
+  useUpdateDistrictOppositionCandidateMutation,
+  useDeleteDistrictOppositionCandidateMutation,
 
 
   // useGetNationalOppositionQuery,

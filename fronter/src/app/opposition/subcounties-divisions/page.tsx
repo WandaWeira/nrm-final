@@ -20,6 +20,12 @@ import {
   useGetSubcountiesDivisionsCandidatesQuery,
 } from "@/state/api";
 
+type SubcountiesDivisionsElectionType =
+  | "partyStructure"
+  | "lc3"
+  | "SubcountyCouncillors"
+  | "SubcountySIGCouncillors";
+
 interface Candidate {
   id: string;
   ninNumber: string;
@@ -41,7 +47,7 @@ interface Candidate {
   division?: string;
   ward?: string;
   cell?: string;
-  subcountiesDivisionsElectionType: string;
+  subcountiesDivisionsElectionType: SubcountiesDivisionsElectionType;
   isQualified: boolean;
   vote: number;
 }
@@ -67,7 +73,7 @@ interface OppositionCandidate {
   division?: string;
   ward?: string;
   cell?: string;
-  subcountiesDivisionsElectionType: string;
+  subcountiesDivisionsElectionType: SubcountiesDivisionsElectionType;
   vote: number;
   party: string;
 }
@@ -122,7 +128,7 @@ const SubcountyDivisionOpposition: React.FC = () => {
       division: "",
       ward: "",
       cell: "",
-      subcountiesDivisionsElectionType: "",
+      subcountiesDivisionsElectionType: "lc3",
       vote: 0,
       party: "",
     });
@@ -165,10 +171,17 @@ const SubcountyDivisionOpposition: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setOppositionCandidate((prev) => ({
-      ...prev,
-      [name]: value === "" ? undefined : value,
-    }));
+    if (name === "subcountiesDivisionsElectionType") {
+      setOppositionCandidate((prev) => ({
+        ...prev,
+        [name]: value as SubcountiesDivisionsElectionType,
+      }));
+    } else {
+      setOppositionCandidate((prev) => ({
+        ...prev,
+        [name]: value === "" ? undefined : value,
+      }));
+    }
 
     if (name === "district") {
       const selectedDistrict = districts?.find(
@@ -213,6 +226,8 @@ const SubcountyDivisionOpposition: React.FC = () => {
       const dataToSubmit = {
         ...oppositionCandidate,
         vote: Number(oppositionCandidate.vote),
+        subcountiesDivisionsElectionType:
+          oppositionCandidate.subcountiesDivisionsElectionType as SubcountiesDivisionsElectionType,
       };
 
       Object.keys(dataToSubmit).forEach(
@@ -292,7 +307,7 @@ const SubcountyDivisionOpposition: React.FC = () => {
       division: "",
       ward: "",
       cell: "",
-      subcountiesDivisionsElectionType: "",
+      subcountiesDivisionsElectionType: "lc3",
       vote: 0,
       party: "",
     });
@@ -720,7 +735,8 @@ const SubcountyDivisionOpposition: React.FC = () => {
                             division: "",
                             ward: "",
                             cell: "",
-                            subcountiesDivisionsElectionType: type,
+                            subcountiesDivisionsElectionType:
+                              type as SubcountiesDivisionsElectionType,
                             vote: 0,
                             party: "",
                           });
@@ -775,7 +791,8 @@ const SubcountyDivisionOpposition: React.FC = () => {
                           division: "",
                           ward: "",
                           cell: "",
-                          subcountiesDivisionsElectionType: activeTab,
+                          subcountiesDivisionsElectionType:
+                            activeTab as SubcountiesDivisionsElectionType,
                           vote: 0,
                           party: "",
                         });

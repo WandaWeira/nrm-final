@@ -674,7 +674,8 @@ const DistrictOpposition: React.FC = () => {
               {Object.entries(winners).map(([category, winner]) => (
                 <div key={`${type}-${category}`}>
                   {renderWinnerTable(winner, category)}
-                  {oppositionCandidates?.filter(
+                  {oppositionCandidates &&
+                  oppositionCandidates.filter(
                     (candidate: OppositionCandidate) =>
                       candidate.districtElectionType === type &&
                       getCategoryKey(candidate) === category
@@ -720,7 +721,8 @@ const DistrictOpposition: React.FC = () => {
             ([category, winner]) => (
               <div key={`${activeTab}-${category}`}>
                 {renderWinnerTable(winner, category)}
-                {oppositionCandidates?.filter(
+                {oppositionCandidates &&
+                oppositionCandidates.filter(
                   (candidate: OppositionCandidate) =>
                     candidate.districtElectionType === activeTab &&
                     getCategoryKey(candidate) === category

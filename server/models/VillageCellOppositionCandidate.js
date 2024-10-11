@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
-  const SubcountiesDivisionsCandidate = sequelize.define(
-    "SubcountiesDivisionsCandidate",
+  const VillageCellOppositionCandidate = sequelize.define(
+    "VillageCellOppositionCandidate",
     {
       id: {
         type: DataTypes.INTEGER,
@@ -12,14 +12,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
       position: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      councilorType: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      gender: {
         type: DataTypes.STRING,
         allowNull: true,
       },
@@ -37,15 +29,15 @@ module.exports = (sequelize, DataTypes) => {
       },
       constituency: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       subcounty: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       parish: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       village: {
         type: DataTypes.STRING,
@@ -67,33 +59,27 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      subcountiesDivisionsElectionType: {
-        type: DataTypes.ENUM(
-          "partyStructure",
-          "lc3",
-          "SubcountyCouncillors",
-          "SubcountySIGCouncillors"
-        ),
+      villageCellElectionType: {
+        type: DataTypes.ENUM("partyStructure", "lc1"),
         allowNull: false,
       },
-      isQualified: {
-        type: DataTypes.BOOLEAN,
-        allowNull: true,
-        defaultValue: false,
-      },
-      vote:{
+      vote: {
         type: DataTypes.INTEGER,
         allowNull: true,
         defaultValue: 0,
-      }
+      },
+      party: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
     }
   );
 
-  SubcountiesDivisionsCandidate.associate = (models) => {
-    SubcountiesDivisionsCandidate.belongsTo(models.Candidate, {
-      foreignKey: "candidateId",
+  VillageCellOppositionCandidate.associate = (models) => {
+    VillageCellOppositionCandidate.belongsTo(models.OppositionCandidate, {
+      foreignKey: "oppositionCandidateId",
     });
   };
 
-  return SubcountiesDivisionsCandidate;
+  return VillageCellOppositionCandidate;
 };

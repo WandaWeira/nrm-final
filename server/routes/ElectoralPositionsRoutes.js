@@ -11,6 +11,10 @@ const {
   NationalOppositionCandidate,
   OppositionCandidate,
   DistrictOppositionCandidate,
+  ConstituencyMunicipalityOppositionCandidate,
+  SubcountiesDivisionsOppositionCandidate,
+  ParishesWardsOppositionCandidate,
+  VillageCellOppositionCandidate,
 } = require("../models");
 const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
@@ -29,14 +33,22 @@ const createCRUDRoutes = (model, path) => {
         let candidate;
         let candidateModel =
           model === NationalOppositionCandidate ||
-          model === DistrictOppositionCandidate
+          model === DistrictOppositionCandidate ||
+          model === ConstituencyMunicipalityOppositionCandidate ||
+          model === SubcountiesDivisionsOppositionCandidate ||
+          model === ParishesWardsOppositionCandidate ||
+          model === VillageCellOppositionCandidate
             ? OppositionCandidate
             : Candidate;
 
         // Create the Candidate or OppositionCandidate
         if (
           model === NationalOppositionCandidate ||
-          model === DistrictOppositionCandidate
+          model === DistrictOppositionCandidate ||
+          model === ConstituencyMunicipalityOppositionCandidate ||
+          model === SubcountiesDivisionsOppositionCandidate ||
+          model === ParishesWardsOppositionCandidate ||
+          model === VillageCellOppositionCandidate
         ) {
           // For opposition candidates, always create a new OppositionCandidate
           candidate = await OppositionCandidate.create({
@@ -62,7 +74,11 @@ const createCRUDRoutes = (model, path) => {
         // Then, create the specific candidate type
         if (
           model === NationalOppositionCandidate ||
-          model === DistrictOppositionCandidate
+          model === DistrictOppositionCandidate ||
+          model === ConstituencyMunicipalityOppositionCandidate ||
+          model === SubcountiesDivisionsOppositionCandidate ||
+          model === ParishesWardsOppositionCandidate ||
+          model === VillageCellOppositionCandidate
         ) {
           const item = await model.create({
             ...otherData,
@@ -112,7 +128,11 @@ const createCRUDRoutes = (model, path) => {
             {
               model:
                 model === NationalOppositionCandidate ||
-                model === DistrictOppositionCandidate
+                model === DistrictOppositionCandidate ||
+                model === ConstituencyMunicipalityOppositionCandidate ||
+                model === SubcountiesDivisionsOppositionCandidate ||
+                model === ParishesWardsOppositionCandidate ||
+                model === VillageCellOppositionCandidate
                   ? OppositionCandidate
                   : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
@@ -158,7 +178,11 @@ const createCRUDRoutes = (model, path) => {
             {
               model:
                 model === NationalOppositionCandidate ||
-                model === DistrictOppositionCandidate
+                model === DistrictOppositionCandidate ||
+                model === ConstituencyMunicipalityOppositionCandidate ||
+                model === SubcountiesDivisionsOppositionCandidate ||
+                model === ParishesWardsOppositionCandidate ||
+                model === VillageCellOppositionCandidate
                   ? OppositionCandidate
                   : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
@@ -214,7 +238,11 @@ const createCRUDRoutes = (model, path) => {
           // Update the associated Candidate or OppositionCandidate
           const candidateModel =
             model === NationalOppositionCandidate ||
-            model === DistrictOppositionCandidate
+            model === DistrictOppositionCandidate ||
+            model === ConstituencyMunicipalityOppositionCandidate ||
+            model === SubcountiesDivisionsOppositionCandidate ||
+            model === ParishesWardsOppositionCandidate ||
+            model === VillageCellOppositionCandidate
               ? OppositionCandidate
               : Candidate;
           await candidateModel.update(
@@ -316,7 +344,11 @@ const createCRUDRoutes = (model, path) => {
           // Determine if it's an opposition candidate
           const isOppositionCandidate =
             model === NationalOppositionCandidate ||
-            model === DistrictOppositionCandidate;
+            model === DistrictOppositionCandidate ||
+            model === ConstituencyMunicipalityOppositionCandidate ||
+            model === SubcountiesDivisionsOppositionCandidate ||
+            model === ParishesWardsOppositionCandidate ||
+            model === VillageCellOppositionCandidate;
 
           // Update the associated Candidate or OppositionCandidate
           const candidateModel = isOppositionCandidate
@@ -429,7 +461,11 @@ const createCRUDRoutes = (model, path) => {
             {
               model:
                 model === NationalOppositionCandidate ||
-                model === DistrictOppositionCandidate
+                model === DistrictOppositionCandidate ||
+                model === ConstituencyMunicipalityOppositionCandidate ||
+                model === SubcountiesDivisionsOppositionCandidate ||
+                model === ParishesWardsOppositionCandidate ||
+                model === VillageCellOppositionCandidate
                   ? OppositionCandidate
                   : Candidate,
               attributes: ["firstName", "lastName", "phoneNumber", "ninNumber"],
@@ -481,5 +517,23 @@ createCRUDRoutes(
 createCRUDRoutes(DistrictCandidate, "district-candidates");
 createCRUDRoutes(NationalOppositionCandidate, "national-opposition-candidates");
 createCRUDRoutes(DistrictOppositionCandidate, "district-opposition-candidates");
+createCRUDRoutes(
+  ConstituencyMunicipalityOppositionCandidate,
+  "constituency-municipality-opposition-candidates"
+);
+createCRUDRoutes(
+  SubcountiesDivisionsOppositionCandidate,
+  "subcounties-divisions-opposition-candidates"
+);
+
+createCRUDRoutes(
+  ParishesWardsOppositionCandidate,
+  "parishes-wards-opposition-candidates"
+);
+
+createCRUDRoutes(
+  VillageCellOppositionCandidate,
+  "village-cell-opposition-candidates"
+);
 
 module.exports = router;

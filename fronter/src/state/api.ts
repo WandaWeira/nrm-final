@@ -198,6 +198,102 @@ interface DistrictOppositionCandidate {
   party: string;
 }
 
+export interface ConstituencyMunicipalityOppositionCandidate {
+  id?: string;
+  ninNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  region: string;
+  subregion: string;
+  district: string;
+  constituency?: string;
+  subcounty?: string;
+  parish?: string;
+  village?: string;
+  municipality?: string;
+  division?: string;
+  ward?: string;
+  cell?: string;
+  constituencyMunicipalityElectionType: string;
+  vote: number;
+  party: string;
+}
+
+export interface SubcountiesDivisionsOppositionCandidate {
+  id?: string;
+  ninNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  category?: string;
+  position?: string;
+  councilorType?: string;
+  gender?: string;
+  region: string;
+  subregion: string;
+  district: string;
+  constituency: string;
+  subcounty: string;
+  parish: string;
+  village?: string;
+  municipality?: string;
+  division?: string;
+  ward?: string;
+  cell?: string;
+  subcountiesDivisionsElectionType: "partyStructure" | "lc3" | "SubcountyCouncillors" | "SubcountySIGCouncillors";
+  vote: number;
+  party: string;
+}
+
+export interface ParishesWardsOppositionCandidate {
+  id?: string;
+  ninNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  category?: string;
+  position?: string;
+  region: string;
+  subregion: string;
+  district: string;
+  constituency?: string;
+  subcounty?: string;
+  parish?: string;
+  village?: string;
+  municipality?: string;
+  division?: string;
+  ward?: string;
+  cell?: string;
+  parishwardElectionType: "partyStructure" | "lc2";
+  vote: number;
+  party: string;
+}
+
+export interface VillageCellOppositionCandidate {
+  id?: string;
+  ninNumber: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  category?: string;
+  position?: string;
+  region: string;
+  subregion: string;
+  district: string;
+  constituency?: string;
+  subcounty?: string;
+  parish?: string;
+  village?: string;
+  municipality?: string;
+  division?: string;
+  ward?: string;
+  cell?: string;
+  villageCellElectionType: "partyStructure" | "lc1";
+  vote: number;
+  party: string;
+}
+
 
 
 // Define the API
@@ -224,7 +320,8 @@ export const api = createApi({
     'Candidate', 'VillageCellsCandidates', 'NationalCandidate','WardRegistrars','ParishRegistrars','VillageRegistrars',
     'CellRegistrars','ParishPollingStations','WardPollingStations','ParishesWardsCandidates','SubcountiesDivisionsCandidates',
     'ConstituencyMunicipalityCandidates','DistrictCandidates','OppositionCandidates','NationalOppositionCandidate',
-    'DistrictOppositionCandidates'
+    'DistrictOppositionCandidates','ConstituencyMunicipalityOppositionCandidates',
+    'SubcountiesDivisionsOppositionCandidates','ParishesWardsOppositionCandidates','VillageCellOppositionCandidates'
   ],
   endpoints: (build) => ({
     // Authentication
@@ -1251,6 +1348,133 @@ deleteDistrictOppositionCandidate: build.mutation<{ success: boolean; id: string
   invalidatesTags: ['DistrictOppositionCandidates'],
 }),
 
+
+getConstituencyMunicipalityOppositionCandidates: build.query<ConstituencyMunicipalityOppositionCandidate[], void>({
+  query: () => 'electoral-positions/constituency-municipality-opposition-candidates',
+  providesTags: ['ConstituencyMunicipalityOppositionCandidates'],
+}),
+
+createConstituencyMunicipalityOppositionCandidate: build.mutation<ConstituencyMunicipalityOppositionCandidate, Partial<ConstituencyMunicipalityOppositionCandidate>>({
+  query: (candidate) => ({
+    url: 'electoral-positions/constituency-municipality-opposition-candidates',
+    method: 'POST',
+    body: candidate,
+  }),
+  invalidatesTags: ['ConstituencyMunicipalityOppositionCandidates'],
+}),
+
+updateConstituencyMunicipalityOppositionCandidate: build.mutation<ConstituencyMunicipalityOppositionCandidate, Partial<ConstituencyMunicipalityOppositionCandidate>>({
+  query: (candidate) => ({
+    url: `electoral-positions/constituency-municipality-opposition-candidates/${candidate.id}`,
+    method: 'PUT',
+    body: candidate,
+  }),
+  invalidatesTags: ['ConstituencyMunicipalityOppositionCandidates'],
+}),
+
+deleteConstituencyMunicipalityOppositionCandidate: build.mutation<{ success: boolean; id: string }, string>({
+  query: (id) => ({
+    url: `electoral-positions/constituency-municipality-opposition-candidates/${id}`,
+    method: 'DELETE',
+  }),
+  invalidatesTags: ['ConstituencyMunicipalityOppositionCandidates'],
+}),
+
+
+getSubcountiesDivisionsOppositionCandidates: build.query<SubcountiesDivisionsOppositionCandidate[], void>({
+  query: () => 'electoral-positions/subcounties-divisions-opposition-candidates',
+  providesTags: ['SubcountiesDivisionsOppositionCandidates'],
+}),
+
+createSubcountiesDivisionsOppositionCandidate: build.mutation<SubcountiesDivisionsOppositionCandidate, Partial<SubcountiesDivisionsOppositionCandidate>>({
+  query: (candidate) => ({
+    url: 'electoral-positions/subcounties-divisions-opposition-candidates',
+    method: 'POST',
+    body: candidate,
+  }),
+  invalidatesTags: ['SubcountiesDivisionsOppositionCandidates'],
+}),
+
+updateSubcountiesDivisionsOppositionCandidate: build.mutation<SubcountiesDivisionsOppositionCandidate, Partial<SubcountiesDivisionsOppositionCandidate>>({
+  query: (candidate) => ({
+    url: `electoral-positions/subcounties-divisions-opposition-candidates/${candidate.id}`,
+    method: 'PUT',
+    body: candidate,
+  }),
+  invalidatesTags: ['SubcountiesDivisionsOppositionCandidates'],
+}),
+
+deleteSubcountiesDivisionsOppositionCandidate: build.mutation<{ success: boolean; id: string }, string>({
+  query: (id) => ({
+    url: `electoral-positions/subcounties-divisions-opposition-candidates/${id}`,
+    method: 'DELETE',
+  }),
+  invalidatesTags: ['SubcountiesDivisionsOppositionCandidates'],
+}),
+
+
+getParishesWardsOppositionCandidates: build.query<ParishesWardsOppositionCandidate[], void>({
+  query: () => 'electoral-positions/parishes-wards-opposition-candidates',
+  providesTags: ['ParishesWardsOppositionCandidates'],
+}),
+
+createParishesWardsOppositionCandidate: build.mutation<ParishesWardsOppositionCandidate, Partial<ParishesWardsOppositionCandidate>>({
+  query: (candidate) => ({
+    url: 'electoral-positions/parishes-wards-opposition-candidates',
+    method: 'POST',
+    body: candidate,
+  }),
+  invalidatesTags: ['ParishesWardsOppositionCandidates'],
+}),
+
+updateParishesWardsOppositionCandidate: build.mutation<ParishesWardsOppositionCandidate, Partial<ParishesWardsOppositionCandidate>>({
+  query: (candidate) => ({
+    url: `electoral-positions/parishes-wards-opposition-candidates/${candidate.id}`,
+    method: 'PUT',
+    body: candidate,
+  }),
+  invalidatesTags: ['ParishesWardsOppositionCandidates'],
+}),
+
+deleteParishesWardsOppositionCandidate: build.mutation<{ success: boolean; id: string }, string>({
+  query: (id) => ({
+    url: `electoral-positions/parishes-wards-opposition-candidates/${id}`,
+    method: 'DELETE',
+  }),
+  invalidatesTags: ['ParishesWardsOppositionCandidates'],
+}),
+
+getVillageCellOppositionCandidates: build.query<VillageCellOppositionCandidate[], void>({
+  query: () => 'electoral-positions/village-cell-opposition-candidates',
+  providesTags: ['VillageCellOppositionCandidates'],
+}),
+
+createVillageCellOppositionCandidate: build.mutation<VillageCellOppositionCandidate, Partial<VillageCellOppositionCandidate>>({
+  query: (candidate) => ({
+    url: 'electoral-positions/village-cell-opposition-candidates',
+    method: 'POST',
+    body: candidate,
+  }),
+  invalidatesTags: ['VillageCellOppositionCandidates'],
+}),
+
+updateVillageCellOppositionCandidate: build.mutation<VillageCellOppositionCandidate, Partial<VillageCellOppositionCandidate>>({
+  query: (candidate) => ({
+    url: `electoral-positions/village-cell-opposition-candidates/${candidate.id}`,
+    method: 'PUT',
+    body: candidate,
+  }),
+  invalidatesTags: ['VillageCellOppositionCandidates'],
+}),
+
+deleteVillageCellOppositionCandidate: build.mutation<{ success: boolean; id: string }, string>({
+  query: (id) => ({
+    url: `electoral-positions/village-cell-opposition-candidates/${id}`,
+    method: 'DELETE',
+  }),
+  invalidatesTags: ['VillageCellOppositionCandidates'],
+}),
+
 ///end opposition
 
 
@@ -1437,15 +1661,25 @@ export const {
   useUpdateDistrictOppositionCandidateMutation,
   useDeleteDistrictOppositionCandidateMutation,
 
+  useGetConstituencyMunicipalityOppositionCandidatesQuery,
+  useCreateConstituencyMunicipalityOppositionCandidateMutation,
+  useUpdateConstituencyMunicipalityOppositionCandidateMutation,
+  useDeleteConstituencyMunicipalityOppositionCandidateMutation,
 
-  // useGetNationalOppositionQuery,
-  // useUpdateNationalOppositionMutation,
-  // useAddNationalOppositionMutation,
+  useGetSubcountiesDivisionsOppositionCandidatesQuery,
+  useCreateSubcountiesDivisionsOppositionCandidateMutation,
+  useUpdateSubcountiesDivisionsOppositionCandidateMutation,
+  useDeleteSubcountiesDivisionsOppositionCandidateMutation,
 
-  //end opposition
+  useGetParishesWardsOppositionCandidatesQuery,
+  useCreateParishesWardsOppositionCandidateMutation,
+  useUpdateParishesWardsOppositionCandidateMutation,
+  useDeleteParishesWardsOppositionCandidateMutation,
+
+  useGetVillageCellOppositionCandidatesQuery,
+  useCreateVillageCellOppositionCandidateMutation,
+  useUpdateVillageCellOppositionCandidateMutation,
+  useDeleteVillageCellOppositionCandidateMutation,
 
 
-  //nominated
-  // useGetNominatedCandidatesQuery,
-  // useUpdateNominatedCandidateMutation,
 } = api;

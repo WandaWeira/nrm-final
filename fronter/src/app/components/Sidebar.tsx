@@ -248,7 +248,7 @@ const Sidebar = () => {
 
         <SidebarDropdown
           label="Opposition"
-          icon={PieChart}
+          icon={SlidersHorizontalIcon}
           isCollaped={isSidebarCollapsed}
           units={electoralPositions}
           isOpen={openDropdown === "Opposition"}

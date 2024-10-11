@@ -34,7 +34,7 @@ import {
   useDeleteWardPollingStationMutation,
   PollingStation,
 } from "@/state/api";
-import { Edit, Trash, Plus } from "lucide-react";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface UnitModel {
   id: number;
@@ -149,6 +149,11 @@ const ParishesWardsPage: React.FC = () => {
   const [updateWardPollingStation] = useUpdateWardPollingStationMutation();
   const [deleteWardPollingStation] = useDeleteWardPollingStationMutation();
 
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const handleAddPollingStation = async () => {
     if (selectedId && newPollingStation.name && newPollingStation.code) {
       try {
@@ -168,8 +173,19 @@ const ParishesWardsPage: React.FC = () => {
         setIsPollingStationModalOpen(false);
         setNewPollingStation({});
         setSelectedId(null);
-      } catch (error) {
-        console.error("Error adding polling station:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish polling station added successfully"
+            : "Ward polling station added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while adding the polling station",
+        });
       }
     }
   };
@@ -195,8 +211,19 @@ const ParishesWardsPage: React.FC = () => {
         setIsPollingStationModalOpen(false);
         setSelectedPollingStation(null);
         setNewPollingStation({});
-      } catch (error) {
-        console.error("Error updating polling station:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish polling station updated successfully"
+            : "Ward polling station updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while updating the polling station",
+        });
       }
     }
   };
@@ -218,8 +245,19 @@ const ParishesWardsPage: React.FC = () => {
           refetchWardPollingStations();
         }
         setSelectedPollingStation(null);
-      } catch (error) {
-        console.error("Error deleting polling station:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish polling station deleted successfully"
+            : "Ward polling station deleted successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while deleting the polling station",
+        });
       }
     }
   };
@@ -258,8 +296,18 @@ const ParishesWardsPage: React.FC = () => {
         } else {
           refetchWards();
         }
-      } catch (error) {
-        console.error("Error adding item:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish added successfully"
+            : "Ward added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error || "An error occurred while adding the item",
+        });
       }
     }
   };
@@ -282,8 +330,18 @@ const ParishesWardsPage: React.FC = () => {
         }
         setIsModalOpen(false);
         setEditingItem(null);
-      } catch (error) {
-        console.error("Error updating item:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish updated successfully"
+            : "Ward updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error || "An error occurred while updating the item",
+        });
       }
     }
   };
@@ -297,8 +355,19 @@ const ParishesWardsPage: React.FC = () => {
         await deleteWard(item.id).unwrap();
         refetchWards();
       }
-    } catch (error) {
-      console.error("Error deleting item:", error);
+      setOperationResult({
+        success: true,
+        message:
+          "subcountyId" in item
+            ? "Parish deleted successfully"
+            : "Ward deleted successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error || "An error occurred while deleting the item",
+      });
     }
   };
 
@@ -321,11 +390,22 @@ const ParishesWardsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setNewRegistra({});
         setSelectedId(null);
-      } catch (error) {
-        console.error("Error adding registra:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish registrar added successfully"
+            : "Ward registrar added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error || "An error occurred while adding the registrar",
+        });
       }
     }
   };
+
   const handleUpdateRegistra = async () => {
     if (selectedRegistra && selectedId) {
       try {
@@ -347,8 +427,19 @@ const ParishesWardsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setSelectedRegistra(null);
         setNewRegistra({});
-      } catch (error) {
-        console.error("Error updating registra:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish registrar updated successfully"
+            : "Ward registrar updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while updating the registrar",
+        });
       }
     }
   };
@@ -370,8 +461,19 @@ const ParishesWardsPage: React.FC = () => {
           refetchWardRegistras();
         }
         setSelectedRegistra(null);
-      } catch (error) {
-        console.error("Error deleting registra:", error);
+        setOperationResult({
+          success: true,
+          message: isParish
+            ? "Parish registrar deleted successfully"
+            : "Ward registrar deleted successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while deleting the registrar",
+        });
       }
     }
   };
@@ -862,6 +964,40 @@ const ParishesWardsPage: React.FC = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

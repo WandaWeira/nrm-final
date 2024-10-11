@@ -4,10 +4,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     }
-    // nrmRegistra: {
-    //   type: DataTypes.JSON,
-    //   allowNull: false,
-    // },
   });
 
   Constituency.associate = (models) => {

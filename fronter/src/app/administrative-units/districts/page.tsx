@@ -12,7 +12,7 @@ import {
   useGetSubregionsQuery,
   useGetRegionsQuery,
 } from "@/state/api";
-import { Edit, Trash, Plus } from "lucide-react";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface DistrictModel {
   id: number;
@@ -72,12 +72,15 @@ const DistrictsPage: React.FC = () => {
     useState<DistrictRegistra | null>(null);
   const [newRegistra, setNewRegistra] = useState<Partial<DistrictRegistra>>({});
 
-  const { data: districtRegistras, refetch: refetchDistrictRegistras } = useGetDistrictRegistrasQuery(
-    selectedDistrictId || 0,
-    {
+  const { data: districtRegistras, refetch: refetchDistrictRegistras } =
+    useGetDistrictRegistrasQuery(selectedDistrictId || 0, {
       skip: !selectedDistrictId,
-    }
-  );
+    });
+
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const subregionMap = useMemo(() => {
     if (!subregions) return new Map<number, string>();
@@ -106,8 +109,15 @@ const DistrictsPage: React.FC = () => {
       setIsModalOpen(false);
       setNewDistrict({});
       refetch();
-    } catch (error) {
-      console.error("Error adding district:", error);
+      setOperationResult({
+        success: true,
+        message: "District added successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
@@ -126,8 +136,15 @@ const DistrictsPage: React.FC = () => {
         setIsModalOpen(false);
         setEditingDistrict(null);
         refetch();
-      } catch (error) {
-        console.error("Error updating district:", error);
+        setOperationResult({
+          success: true,
+          message: "District updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
@@ -136,8 +153,15 @@ const DistrictsPage: React.FC = () => {
     try {
       await deleteDistrict(districtId).unwrap();
       refetch();
-    } catch (error) {
-      console.error("Error deleting district:", error);
+      setOperationResult({
+        success: true,
+        message: "District deleted successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
@@ -151,8 +175,15 @@ const DistrictsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setNewRegistra({});
         refetchDistrictRegistras();
-      } catch (error) {
-        console.error("Error adding district registra:", error);
+        setOperationResult({
+          success: true,
+          message: "District Registrar successfully added",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
@@ -169,8 +200,15 @@ const DistrictsPage: React.FC = () => {
         setSelectedRegistra(null);
         setNewRegistra({});
         refetchDistrictRegistras();
-      } catch (error) {
-        console.error("Error updating district registra:", error);
+        setOperationResult({
+          success: true,
+          message: "District Registrar successfully updated",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
@@ -183,8 +221,15 @@ const DistrictsPage: React.FC = () => {
           id: registraId,
         }).unwrap();
         refetchDistrictRegistras();
-      } catch (error) {
-        console.error("Error deleting district registra:", error);
+        setOperationResult({
+          success: true,
+          message: "District Registrar successfully deleted",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
@@ -378,9 +423,15 @@ const DistrictsPage: React.FC = () => {
                     <tr key={registrar.id}>
                       <td className="border px-4 py-2">{`${registrar.firstName} ${registrar.lastName}`}</td>
                       <td className="border px-4 py-2">{registrar.email}</td>
-                      <td className="border px-4 py-2">{registrar.phoneNumber}</td>
-                      <td className="border px-4 py-2">{registrar.ninNumber}</td>
-                      <td className="border px-4 py-2">{registrar.isActive ? "Active" : "Inactive"}</td>
+                      <td className="border px-4 py-2">
+                        {registrar.phoneNumber}
+                      </td>
+                      <td className="border px-4 py-2">
+                        {registrar.ninNumber}
+                      </td>
+                      <td className="border px-4 py-2">
+                        {registrar.isActive ? "Active" : "Inactive"}
+                      </td>
                       <td className="border px-4 py-2">
                         <button
                           onClick={() => openEditRegistraModal(registrar)}
@@ -389,7 +440,9 @@ const DistrictsPage: React.FC = () => {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDeleteDistrictRegistra(registrar.id)}
+                          onClick={() =>
+                            handleDeleteDistrictRegistra(registrar.id)
+                          }
                           className="text-red-500 hover:text-red-700"
                         >
                           Delete
@@ -462,7 +515,11 @@ const DistrictsPage: React.FC = () => {
             </label>
             <div className="flex justify-end mt-4">
               <button
-                onClick={selectedRegistra ? handleUpdateDistrictRegistra : handleAddDistrictRegistra}
+                onClick={
+                  selectedRegistra
+                    ? handleUpdateDistrictRegistra
+                    : handleAddDistrictRegistra
+                }
                 className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
               >
                 {selectedRegistra ? "Update Registra" : "Add Registra"}
@@ -478,6 +535,40 @@ const DistrictsPage: React.FC = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

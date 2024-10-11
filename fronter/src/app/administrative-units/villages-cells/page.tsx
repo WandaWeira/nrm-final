@@ -27,7 +27,7 @@ import {
   useUpdateCellRegistraMutation,
   useDeleteCellRegistraMutation,
 } from "@/state/api";
-import { Edit, Trash, Plus } from "lucide-react";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface UnitModel {
   id: number;
@@ -135,6 +135,11 @@ const VillagesCellsPage: React.FC = () => {
   const [updateCellRegistra] = useUpdateCellRegistraMutation();
   const [deleteCellRegistra] = useDeleteCellRegistraMutation();
 
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const handleAddItem = async () => {
     if (selectedParentId) {
       try {
@@ -143,22 +148,29 @@ const VillagesCellsPage: React.FC = () => {
             name: newItem.name,
             parishId: selectedParentId,
           }).unwrap();
+          refetchVillages();
         } else {
           await createCell({
             name: newItem.name,
             wardId: selectedParentId,
           }).unwrap();
+          refetchCells();
         }
         setIsModalOpen(false);
         setNewItem({});
         setSelectedParentId(null);
-        if (isVillage) {
-          refetchVillages();
-        } else {
-          refetchCells();
-        }
-      } catch (error) {
-        console.error("Error adding item:", error);
+        setOperationResult({
+          success: true,
+          message: isVillage
+            ? "Village added successfully"
+            : "Cell added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error || "An error occurred while adding the item",
+        });
       }
     }
   };
@@ -181,8 +193,18 @@ const VillagesCellsPage: React.FC = () => {
         }
         setIsModalOpen(false);
         setEditingItem(null);
-      } catch (error) {
-        console.error("Error updating item:", error);
+        setOperationResult({
+          success: true,
+          message: isVillage
+            ? "Village updated successfully"
+            : "Cell updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error || "An error occurred while updating the item",
+        });
       }
     }
   };
@@ -196,8 +218,19 @@ const VillagesCellsPage: React.FC = () => {
         await deleteCell(item.id).unwrap();
         refetchCells();
       }
-    } catch (error) {
-      console.error("Error deleting item:", error);
+      setOperationResult({
+        success: true,
+        message:
+          "parishId" in item
+            ? "Village deleted successfully"
+            : "Cell deleted successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error || "An error occurred while deleting the item",
+      });
     }
   };
 
@@ -220,8 +253,18 @@ const VillagesCellsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setNewRegistra({});
         setSelectedId(null);
-      } catch (error) {
-        console.error("Error adding registra:", error);
+        setOperationResult({
+          success: true,
+          message: isVillage
+            ? "Village registrar added successfully"
+            : "Cell registrar added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error || "An error occurred while adding the registrar",
+        });
       }
     }
   };
@@ -247,8 +290,19 @@ const VillagesCellsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setSelectedRegistra(null);
         setNewRegistra({});
-      } catch (error) {
-        console.error("Error updating registra:", error);
+        setOperationResult({
+          success: true,
+          message: isVillage
+            ? "Village registrar updated successfully"
+            : "Cell registrar updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while updating the registrar",
+        });
       }
     }
   };
@@ -270,8 +324,19 @@ const VillagesCellsPage: React.FC = () => {
           refetchCellRegistras();
         }
         setSelectedRegistra(null);
-      } catch (error) {
-        console.error("Error deleting registra:", error);
+        setOperationResult({
+          success: true,
+          message: isVillage
+            ? "Village registrar deleted successfully"
+            : "Cell registrar deleted successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message:
+            error.data?.error ||
+            "An error occurred while deleting the registrar",
+        });
       }
     }
   };
@@ -333,22 +398,24 @@ const VillagesCellsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-          {(villages as VillageModel[])?.map((village) => {
-            const parish = (parishes as ParishModel[])?.find((p) => p.id === village.parishId);
-            const subcounty = (subcounties as SubcountyModel[])?.find(
-              (sc) => sc.id === parish?.subcountyId
-            );
-            const constituency = (constituencies as ConstituencyModel[])?.find(
-              (c) => c.id === subcounty?.constituencyId
-            );
-            const district = (districts as DistrictModel[])?.find(
-              (d) => d.id === constituency?.districtId
-            );
-            const subregion = (subregions as SubregionModel[])?.find(
-              (sr) => sr.id === district?.subregionId
-            );
-            const region = regions?.find((r) => r.id === subregion?.regionId);
-            return (
+            {(villages as VillageModel[])?.map((village) => {
+              const parish = (parishes as ParishModel[])?.find(
+                (p) => p.id === village.parishId
+              );
+              const subcounty = (subcounties as SubcountyModel[])?.find(
+                (sc) => sc.id === parish?.subcountyId
+              );
+              const constituency = (
+                constituencies as ConstituencyModel[]
+              )?.find((c) => c.id === subcounty?.constituencyId);
+              const district = (districts as DistrictModel[])?.find(
+                (d) => d.id === constituency?.districtId
+              );
+              const subregion = (subregions as SubregionModel[])?.find(
+                (sr) => sr.id === district?.subregionId
+              );
+              const region = regions?.find((r) => r.id === subregion?.regionId);
+              return (
                 <tr key={village.id}>
                   <td className="border px-4 py-2">{village.name}</td>
                   <td className="border px-4 py-2">{parish?.name}</td>
@@ -408,22 +475,24 @@ const VillagesCellsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-          {(cells as CellModel[])?.map((cell) => {
-            const ward = (wards as WardModel[])?.find((w) => w.id === cell.wardId);
-            const division = (divisions as DivisionModel[])?.find(
-              (d) => d.id === ward?.divisionId
-            );
-            const municipality = (municipalities as MunicipalityModel[])?.find(
-              (m) => m.id === division?.municipalityId
-            );
-            const district = (districts as DistrictModel[])?.find(
-              (d) => d.id === municipality?.districtId
-            );
-            const subregion = (subregions as SubregionModel[])?.find(
-              (sr) => sr.id === district?.subregionId
-            );
-            const region = regions?.find((r) => r.id === subregion?.regionId);
-            return (
+            {(cells as CellModel[])?.map((cell) => {
+              const ward = (wards as WardModel[])?.find(
+                (w) => w.id === cell.wardId
+              );
+              const division = (divisions as DivisionModel[])?.find(
+                (d) => d.id === ward?.divisionId
+              );
+              const municipality = (
+                municipalities as MunicipalityModel[]
+              )?.find((m) => m.id === division?.municipalityId);
+              const district = (districts as DistrictModel[])?.find(
+                (d) => d.id === municipality?.districtId
+              );
+              const subregion = (subregions as SubregionModel[])?.find(
+                (sr) => sr.id === district?.subregionId
+              );
+              const region = regions?.find((r) => r.id === subregion?.regionId);
+              return (
                 <tr key={cell.id}>
                   <td className="border px-4 py-2">{cell.name}</td>
                   <td className="border px-4 py-2">{ward?.name}</td>
@@ -643,6 +712,40 @@ const VillagesCellsPage: React.FC = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

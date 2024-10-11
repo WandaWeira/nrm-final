@@ -21,9 +21,9 @@ import {
   useUpdateDivisionRegistraMutation,
   useDeleteDivisionRegistraMutation,
   useGetRegionsQuery,
-  useGetSubregionsQuery
+  useGetSubregionsQuery,
 } from "@/state/api";
-import { Edit, Trash, Plus } from "lucide-react";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface UnitModel {
   id: number;
@@ -72,7 +72,8 @@ const SubcountiesDivisionsPage: React.FC = () => {
   const { data: districts } = useGetDistrictsQuery();
   const { data: constituencies } = useGetConstituenciesQuery();
   const { data: municipalities } = useGetMunicipalitiesQuery();
-  const { data: subcounties, refetch: refetchSubcounties } = useGetSubcountiesQuery();
+  const { data: subcounties, refetch: refetchSubcounties } =
+    useGetSubcountiesQuery();
   const { data: divisions, refetch: refetchDivisions } = useGetDivisionsQuery();
 
   const [createSubcounty] = useCreateSubcountyMutation();
@@ -91,11 +92,17 @@ const SubcountiesDivisionsPage: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRegistraModalOpen, setIsRegistraModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<SubcountyModel | DivisionModel | null>(null);
-  const [newItem, setNewItem] = useState<Partial<SubcountyModel | DivisionModel>>({});
+  const [editingItem, setEditingItem] = useState<
+    SubcountyModel | DivisionModel | null
+  >(null);
+  const [newItem, setNewItem] = useState<
+    Partial<SubcountyModel | DivisionModel>
+  >({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedParentId, setSelectedParentId] = useState<number | null>(null);
-  const [selectedRegistra, setSelectedRegistra] = useState<Registra | null>(null);
+  const [selectedRegistra, setSelectedRegistra] = useState<Registra | null>(
+    null
+  );
   const [newRegistra, setNewRegistra] = useState<Partial<Registra>>({});
   const [isSubcounty, setIsSubcounty] = useState(true);
 
@@ -108,6 +115,11 @@ const SubcountiesDivisionsPage: React.FC = () => {
     useGetDivisionRegistrasQuery(selectedId || 0, {
       skip: !selectedId || isSubcounty,
     });
+
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   const handleAddItem = async () => {
     if (selectedParentId) {
@@ -128,8 +140,17 @@ const SubcountiesDivisionsPage: React.FC = () => {
         setIsModalOpen(false);
         setNewItem({});
         setSelectedParentId(null);
-      } catch (error) {
-        console.error("Error adding item:", error);
+        setOperationResult({
+          success: true,
+          message: isSubcounty
+            ? "Subcounty added successfully"
+            : "Division added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
@@ -137,7 +158,7 @@ const SubcountiesDivisionsPage: React.FC = () => {
   const handleUpdateItem = async () => {
     if (editingItem) {
       try {
-        if ('constituencyId' in editingItem) {
+        if ("constituencyId" in editingItem) {
           await updateSubcounty({
             id: editingItem.id,
             updates: newItem as SubcountyModel,
@@ -152,23 +173,42 @@ const SubcountiesDivisionsPage: React.FC = () => {
         }
         setIsModalOpen(false);
         setEditingItem(null);
-      } catch (error) {
-        console.error("Error updating item:", error);
+        setOperationResult({
+          success: true,
+          message: isSubcounty
+            ? "Subcounty updated successfully"
+            : "Division updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
 
   const handleDeleteItem = async (item: SubcountyModel | DivisionModel) => {
     try {
-      if ('constituencyId' in item) {
+      if ("constituencyId" in item) {
         await deleteSubcounty(item.id).unwrap();
         refetchSubcounties();
       } else {
         await deleteDivision(item.id).unwrap();
         refetchDivisions();
       }
-    } catch (error) {
-      console.error("Error deleting item:", error);
+      setOperationResult({
+        success: true,
+        message:
+          "constituencyId" in item
+            ? "Subcounty deleted successfully"
+            : "Division deleted successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
@@ -191,8 +231,17 @@ const SubcountiesDivisionsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setNewRegistra({});
         setSelectedId(null);
-      } catch (error) {
-        console.error("Error adding registra:", error);
+        setOperationResult({
+          success: true,
+          message: isSubcounty
+            ? "Subcounty registrar added successfully"
+            : "Division registrar added successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.message,
+        });
       }
     }
   };
@@ -218,8 +267,17 @@ const SubcountiesDivisionsPage: React.FC = () => {
         setIsRegistraModalOpen(false);
         setSelectedRegistra(null);
         setNewRegistra({});
-      } catch (error) {
-        console.error("Error updating registra:", error);
+        setOperationResult({
+          success: true,
+          message: isSubcounty
+            ? "Subcounty registrar updated successfully"
+            : "Division registrar updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.message,
+        });
       }
     }
   };
@@ -241,33 +299,44 @@ const SubcountiesDivisionsPage: React.FC = () => {
           refetchDivisionRegistras();
         }
         setSelectedRegistra(null);
-      } catch (error) {
-        console.error("Error deleting registra:", error);
+        setOperationResult({
+          success: true,
+          message: isSubcounty
+            ? "Subcounty registrar deleted successfully"
+            : "Division registrar deleted successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.message,
+        });
       }
     }
   };
 
-  const openAddModal = (type: 'subcounty' | 'division') => {
+  const openAddModal = (type: "subcounty" | "division") => {
     setEditingItem(null);
     setNewItem({});
     setSelectedParentId(null);
-    setIsSubcounty(type === 'subcounty');
+    setIsSubcounty(type === "subcounty");
     setIsModalOpen(true);
   };
 
   const openEditModal = (item: SubcountyModel | DivisionModel) => {
     setEditingItem(item);
     setNewItem(item);
-    setSelectedParentId('constituencyId' in item ? item.constituencyId : item.municipalityId);
-    setIsSubcounty('constituencyId' in item);
+    setSelectedParentId(
+      "constituencyId" in item ? item.constituencyId : item.municipalityId
+    );
+    setIsSubcounty("constituencyId" in item);
     setIsModalOpen(true);
   };
 
-  const openAddRegistraModal = (id: number, type: 'subcounty' | 'division') => {
+  const openAddRegistraModal = (id: number, type: "subcounty" | "division") => {
     setSelectedId(id);
     setSelectedRegistra(null);
     setNewRegistra({});
-    setIsSubcounty(type === 'subcounty');
+    setIsSubcounty(type === "subcounty");
     setIsRegistraModalOpen(true);
   };
 
@@ -285,7 +354,7 @@ const SubcountiesDivisionsPage: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Subcounties</h2>
           <button
-            onClick={() => openAddModal('subcounty')}
+            onClick={() => openAddModal("subcounty")}
             className="bg-yellow-500 text-white px-4 py-2 rounded flex items-center"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Subcounty
@@ -304,10 +373,10 @@ const SubcountiesDivisionsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-          {(subcounties as SubcountyModel[])?.map((subcounty) => {
-              const constituency = (constituencies as ConstituencyModel[])?.find(
-                (c) => c.id === subcounty.constituencyId
-              );
+            {(subcounties as SubcountyModel[])?.map((subcounty) => {
+              const constituency = (
+                constituencies as ConstituencyModel[]
+              )?.find((c) => c.id === subcounty.constituencyId);
               const district = (districts as DistrictModel[])?.find(
                 (d) => d.id === constituency?.districtId
               );
@@ -321,19 +390,30 @@ const SubcountiesDivisionsPage: React.FC = () => {
                 <tr key={subcounty.id}>
                   <td className="border px-4 py-2">{subcounty.id}</td>
                   <td className="border px-4 py-2">{subcounty.name}</td>
-                  <td className="border px-4 py-2">{constituency?.name || "N/A"}</td>
-                  <td className="border px-4 py-2">{district?.name || "N/A"}</td>
-                  <td className="border px-4 py-2">{subregion?.name || "N/A"}</td>
+                  <td className="border px-4 py-2">
+                    {constituency?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">
+                    {district?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">
+                    {subregion?.name || "N/A"}
+                  </td>
                   <td className="border px-4 py-2">{region?.name || "N/A"}</td>
                   <td className="border px-4 py-2">
-                    <button onClick={() => openEditModal(subcounty)} className="mr-2">
+                    <button
+                      onClick={() => openEditModal(subcounty)}
+                      className="mr-2"
+                    >
                       <Edit size={16} />
                     </button>
                     <button onClick={() => handleDeleteItem(subcounty)}>
                       <Trash size={16} />
                     </button>
                     <button
-                      onClick={() => openAddRegistraModal(subcounty.id, 'subcounty')}
+                      onClick={() =>
+                        openAddRegistraModal(subcounty.id, "subcounty")
+                      }
                       className="ml-2 text-blue-500"
                     >
                       View Registra
@@ -350,7 +430,7 @@ const SubcountiesDivisionsPage: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Divisions</h2>
           <button
-            onClick={() => openAddModal('division')}
+            onClick={() => openAddModal("division")}
             className="bg-yellow-500 text-white px-4 py-2 rounded flex items-center"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Division
@@ -369,10 +449,10 @@ const SubcountiesDivisionsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-          {(divisions as DivisionModel[])?.map((division) => {
-              const municipality = (municipalities as MunicipalityModel[])?.find(
-                (m) => m.id === division.municipalityId
-              );
+            {(divisions as DivisionModel[])?.map((division) => {
+              const municipality = (
+                municipalities as MunicipalityModel[]
+              )?.find((m) => m.id === division.municipalityId);
               const district = (districts as DistrictModel[])?.find(
                 (d) => d.id === municipality?.districtId
               );
@@ -386,19 +466,30 @@ const SubcountiesDivisionsPage: React.FC = () => {
                 <tr key={division.id}>
                   <td className="border px-4 py-2">{division.id}</td>
                   <td className="border px-4 py-2">{division.name}</td>
-                  <td className="border px-4 py-2">{municipality?.name || "N/A"}</td>
-                  <td className="border px-4 py-2">{district?.name || "N/A"}</td>
-                  <td className="border px-4 py-2">{subregion?.name || "N/A"}</td>
+                  <td className="border px-4 py-2">
+                    {municipality?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">
+                    {district?.name || "N/A"}
+                  </td>
+                  <td className="border px-4 py-2">
+                    {subregion?.name || "N/A"}
+                  </td>
                   <td className="border px-4 py-2">{region?.name || "N/A"}</td>
                   <td className="border px-4 py-2">
-                    <button onClick={() => openEditModal(division)} className="mr-2">
+                    <button
+                      onClick={() => openEditModal(division)}
+                      className="mr-2"
+                    >
                       <Edit size={16} />
                     </button>
                     <button onClick={() => handleDeleteItem(division)}>
                       <Trash size={16} />
                     </button>
                     <button
-                      onClick={() => openAddRegistraModal(division.id, 'division')}
+                      onClick={() =>
+                        openAddRegistraModal(division.id, "division")
+                      }
                       className="ml-2 text-blue-500"
                     >
                       View Registra
@@ -415,7 +506,8 @@ const SubcountiesDivisionsPage: React.FC = () => {
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-lg">
             <h2 className="text-xl font-semibold mb-4">
-              {editingItem ? "Edit" : "Add"} {isSubcounty ? "Subcounty" : "Division"}
+              {editingItem ? "Edit" : "Add"}{" "}
+              {isSubcounty ? "Subcounty" : "Division"}
             </h2>
             <div>
               <label className="block mb-2">
@@ -437,18 +529,20 @@ const SubcountiesDivisionsPage: React.FC = () => {
                   className="border px-2 py-1 w-full"
                   disabled={editingItem !== null}
                 >
-                  <option value="">Select {isSubcounty ? "Constituency" : "Municipality"}</option>
+                  <option value="">
+                    Select {isSubcounty ? "Constituency" : "Municipality"}
+                  </option>
                   {isSubcounty
                     ? constituencies?.map((constituency) => (
-                      <option key={constituency.id} value={constituency.id}>
-                        {constituency.name}
-                      </option>
-                    ))
+                        <option key={constituency.id} value={constituency.id}>
+                          {constituency.name}
+                        </option>
+                      ))
                     : municipalities?.map((municipality) => (
-                      <option key={municipality.id} value={municipality.id}>
-                        {municipality.name}
-                      </option>
-                    ))}
+                        <option key={municipality.id} value={municipality.id}>
+                          {municipality.name}
+                        </option>
+                      ))}
                 </select>
               </label>
             </div>
@@ -490,29 +584,37 @@ const SubcountiesDivisionsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {(isSubcounty ? subcountyRegistras : divisionRegistras)?.map((registrar) => (
-                    <tr key={registrar.id}>
-                      <td className="border px-4 py-2">{`${registrar.firstName} ${registrar.lastName}`}</td>
-                      <td className="border px-4 py-2">{registrar.email}</td>
-                      <td className="border px-4 py-2">{registrar.phoneNumber}</td>
-                      <td className="border px-4 py-2">{registrar.ninNumber}</td>
-                      <td className="border px-4 py-2">{registrar.isActive ? "Active" : "Inactive"}</td>
-                      <td className="border px-4 py-2">
-                        <button
-                          onClick={() => openEditRegistraModal(registrar)}
-                          className="mr-2 text-blue-500 hover:text-blue-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRegistra(registrar.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {(isSubcounty ? subcountyRegistras : divisionRegistras)?.map(
+                    (registrar) => (
+                      <tr key={registrar.id}>
+                        <td className="border px-4 py-2">{`${registrar.firstName} ${registrar.lastName}`}</td>
+                        <td className="border px-4 py-2">{registrar.email}</td>
+                        <td className="border px-4 py-2">
+                          {registrar.phoneNumber}
+                        </td>
+                        <td className="border px-4 py-2">
+                          {registrar.ninNumber}
+                        </td>
+                        <td className="border px-4 py-2">
+                          {registrar.isActive ? "Active" : "Inactive"}
+                        </td>
+                        <td className="border px-4 py-2">
+                          <button
+                            onClick={() => openEditRegistraModal(registrar)}
+                            className="mr-2 text-blue-500 hover:text-blue-700"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRegistra(registrar.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
@@ -578,7 +680,9 @@ const SubcountiesDivisionsPage: React.FC = () => {
             </label>
             <div className="flex justify-end mt-4">
               <button
-                onClick={selectedRegistra ? handleUpdateRegistra : handleAddRegistra}
+                onClick={
+                  selectedRegistra ? handleUpdateRegistra : handleAddRegistra
+                }
                 className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
               >
                 {selectedRegistra ? "Update Registra" : "Add Registra"}
@@ -594,6 +698,40 @@ const SubcountiesDivisionsPage: React.FC = () => {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

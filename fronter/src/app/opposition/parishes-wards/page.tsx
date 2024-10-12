@@ -1,6 +1,14 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  CheckCircle,
+  X,
+} from "lucide-react";
 import {
   useGetRegionsQuery,
   useGetSubregionsQuery,
@@ -19,6 +27,8 @@ import {
   useDeleteParishesWardsOppositionCandidateMutation,
   useGetParishesWardsCandidatesQuery,
 } from "@/state/api";
+
+type parishwardElectionType = "partyStructure" | "lc2";
 
 interface Candidate {
   id: string;
@@ -39,7 +49,7 @@ interface Candidate {
   ward?: string;
   cell?: string;
   village?: string;
-  parishwardElectionType: "partyStructure" | "lc2";
+  parishwardElectionType: parishwardElectionType;
   isQualified: boolean;
   vote: number;
 }
@@ -63,12 +73,17 @@ interface OppositionCandidate {
   ward?: string;
   cell?: string;
   village?: string;
-  parishwardElectionType: "partyStructure" | "lc2";
+  parishwardElectionType: parishwardElectionType;
   vote: number;
   party: string;
 }
 
 const ParishWardOpposition: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: parishesWardsCandidates } = useGetParishesWardsCandidatesQuery(
     {}
   );
@@ -151,10 +166,17 @@ const ParishWardOpposition: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setOppositionCandidate((prev) => ({
-      ...prev,
-      [name]: value === "" ? undefined : value,
-    }));
+    if (name === "parishwardElectionType") {
+      setOppositionCandidate((prev) => ({
+        ...prev,
+        [name]: value as parishwardElectionType,
+      }));
+    } else {
+      setOppositionCandidate((prev) => ({
+        ...prev,
+        [name]: value === "" ? undefined : value,
+      }));
+    }
 
     if (name === "district") {
       const selectedDistrict = districts?.find(
@@ -178,13 +200,19 @@ const ParishWardOpposition: React.FC = () => {
     ];
     for (let field of requiredFields) {
       if (!oppositionCandidate[field as keyof OppositionCandidate]) {
-        alert(`Please fill the ${field} field`);
+        setOperationResult({
+          success: false,
+          message: `Please fill the ${field} field`,
+        });
         return false;
       }
     }
 
     if (isNaN(Number(oppositionCandidate.vote))) {
-      alert("Vote must be a number");
+      setOperationResult({
+        success: false,
+        message: "Vote must be a number",
+      });
       return false;
     }
 
@@ -212,48 +240,42 @@ const ParishWardOpposition: React.FC = () => {
       } else {
         await createOppositionCandidate(dataToSubmit).unwrap();
       }
-      refetch();
-      alert(
-        `Opposition candidate ${editMode ? "updated" : "added"} successfully!`
-      );
+      await refetch();
+      setOperationResult({
+        success: true,
+        message: `Opposition Candidate ${
+          editMode ? "updated" : "added"
+        } successfully!`,
+      });
       setIsPopupOpen(false);
       resetForm();
     } catch (error: any) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} opposition candidate:`,
-        error
-      );
-      if (error.data && error.data.error) {
-        console.error("Server error message:", error.data.error);
-        alert(
-          `Failed to ${editMode ? "update" : "add"} opposition candidate. ${
-            error.data.error
-          }`
-        );
-      } else {
-        alert(
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error ||
           `Failed to ${
             editMode ? "update" : "add"
-          } opposition candidate. Please try again.`
-        );
-      }
+          } opposition candidate. Please try again.`,
+      });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this opposition candidate?"
-      )
-    ) {
-      try {
-        await deleteOppositionCandidate(id).unwrap();
-        refetch();
-        alert("Opposition candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete opposition candidate:", error);
-        alert("Failed to delete opposition candidate. Please try again.");
-      }
+    try {
+      await deleteOppositionCandidate(id).unwrap();
+      await refetch();
+      setOperationResult({
+        success: true,
+        message: "Opposition candidate deleted successfully!",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error ||
+          "Failed to delete opposition candidate. Please try again.",
+      });
     }
   };
 
@@ -288,20 +310,6 @@ const ParishWardOpposition: React.FC = () => {
     if (!id || !dataArray) return "";
     const item = dataArray.find((item) => item.id.toString() === id.toString());
     return item ? item.name : "";
-  };
-
-  const getLocationName = (
-    candidate: OppositionCandidate,
-    cityField: keyof OppositionCandidate,
-    ruralField: keyof OppositionCandidate,
-    cityData: any[] | undefined,
-    ruralData: any[] | undefined
-  ) => {
-    if (candidate[cityField]) {
-      return getName(candidate[cityField] as string, cityData || []);
-    } else {
-      return getName(candidate[ruralField] as string, ruralData || []);
-    }
   };
 
   const getCategoryKey = (candidate: OppositionCandidate) => {
@@ -441,7 +449,7 @@ const ParishWardOpposition: React.FC = () => {
                     setEditMode(true);
                     setOppositionCandidate(candidate);
                   }}
-                  className="text-blue-500 hover:text-blue-700"
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   <Pencil size={18} />
                 </button>
@@ -1041,7 +1049,7 @@ const ParishWardOpposition: React.FC = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   type="submit"
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  className="bg-gray-950 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded"
                 >
                   {editMode ? "Update" : "Add"} Candidate
                 </button>
@@ -1050,6 +1058,7 @@ const ParishWardOpposition: React.FC = () => {
                   onClick={() => {
                     setIsPopupOpen(false);
                     setEditMode(false);
+                    resetForm();
                   }}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
                 >
@@ -1057,6 +1066,40 @@ const ParishWardOpposition: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

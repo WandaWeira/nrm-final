@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   useGetConstituencyMunicipalityCandidatesQuery,
   useUpdateConstituencyMunicipalityCandidateMutation,
@@ -15,6 +15,7 @@ import {
   useGetWardsQuery,
   useGetCellsQuery,
 } from "@/state/api";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface Candidate {
   id: string;
@@ -39,11 +40,22 @@ interface Candidate {
 }
 
 const ConstituencyMunicipalityResults = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const [updateCandidate] =
     useUpdateConstituencyMunicipalityCandidateMutation();
   const { data: candidates, refetch } =
     useGetConstituencyMunicipalityCandidatesQuery({});
   const [activeTab, setActiveTab] = useState("all");
+  const [editingVotes, setEditingVotes] = useState<{ [key: string]: number }>(
+    {}
+  );
+  const [initialVotes, setInitialVotes] = useState<{ [key: string]: number }>(
+    {}
+  );
 
   // Fetch location data
   const { data: regions } = useGetRegionsQuery();
@@ -62,13 +74,35 @@ const ConstituencyMunicipalityResults = () => {
     refetch();
   }, [refetch]);
 
-  const handleVoteChange = async (id: string, votes: number) => {
+  useEffect(() => {
+    if (candidates) {
+      const votes = candidates.reduce((acc: any, candidate: Candidate) => {
+        acc[candidate.id] = candidate.vote;
+        return acc;
+      }, {} as { [key: string]: number });
+      setInitialVotes(votes);
+      setEditingVotes(votes);
+    }
+  }, [candidates]);
+
+  const handleVoteChange = (id: string, votes: number) => {
+    setEditingVotes((prev) => ({ ...prev, [id]: votes }));
+  };
+
+  const handleVoteSubmit = async (id: string) => {
     try {
-      await updateCandidate({ id, vote: votes }).unwrap();
+      await updateCandidate({ id, vote: editingVotes[id] }).unwrap();
       refetch();
-    } catch (error) {
-      console.error("Failed to update votes:", error);
-      alert("Failed to update votes. Please try again.");
+      setOperationResult({
+        success: true,
+        message: `Candidate vote updated successfully!`,
+      });
+      setInitialVotes((prev) => ({ ...prev, [id]: editingVotes[id] }));
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data?.error || "Failed to update candidate vote.",
+      });
     }
   };
 
@@ -111,6 +145,22 @@ const ConstituencyMunicipalityResults = () => {
     }));
   };
 
+  const sortedGroupedCandidates = useMemo(() => {
+    const grouped: { [key: string]: Candidate[] } = {};
+    const allCandidates = filterCandidatesByType(activeTab);
+    allCandidates.forEach((candidate: Candidate) => {
+      const key = candidate.constituencyMunicipalityElectionType;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(candidate);
+    });
+    Object.keys(grouped).forEach((key) => {
+      grouped[key] = sortCandidates(grouped[key]);
+    });
+    return grouped;
+  }, [candidates, activeTab]);
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">
@@ -118,9 +168,9 @@ const ConstituencyMunicipalityResults = () => {
       </h1>
 
       {/* Tabs */}
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap gap-2">
         <button
-          className={`mr-2 px-4 py-2 rounded ${
+          className={`px-3 py-1 rounded text-sm ${
             activeTab === "all" ? "bg-yellow-500 text-white" : "bg-gray-200"
           }`}
           onClick={() => setActiveTab("all")}
@@ -130,7 +180,7 @@ const ConstituencyMunicipalityResults = () => {
         {["mps"].map((type) => (
           <button
             key={type}
-            className={`mr-2 px-4 py-2 rounded ${
+            className={`px-3 py-1 rounded text-sm ${
               activeTab === type ? "bg-yellow-500 text-white" : "bg-gray-200"
             }`}
             onClick={() => setActiveTab(type)}
@@ -140,171 +190,213 @@ const ConstituencyMunicipalityResults = () => {
         ))}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                NIN
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Phone
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Region
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Subregion
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                District
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Constituency/Municipality
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Subcounty/Division
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Parish/Ward
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Village/Cell
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Election Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Votes
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {sortCandidates(filterCandidatesByType(activeTab))?.map(
-              (candidate: Candidate & { isWinner?: boolean }) => (
-                <tr
-                  key={candidate.id}
-                  // className={candidate.isWinner ? "bg-yellow-100" : ""}
-                  className={
-                    activeTab !== "all" && candidate.isWinner
-                      ? "bg-yellow-100"
-                      : ""
-                  }
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {candidate.firstName} {candidate.lastName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {candidate.ninNumber}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {candidate.phoneNumber}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getName(candidate.region, regions)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getName(candidate.subregion, subregions)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getName(candidate.district, districts)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getLocationName(
-                        candidate,
-                        "municipality",
-                        "constituency",
-                        municipalities,
-                        constituencies
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getLocationName(
-                        candidate,
-                        "division",
-                        "subcounty",
-                        divisions,
-                        subcounties
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getLocationName(
-                        candidate,
-                        "ward",
-                        "parish",
-                        wards,
-                        parishes
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {getLocationName(
-                        candidate,
-                        "cell",
-                        "village",
-                        cells,
-                        villages
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {candidate.constituencyMunicipalityElectionType}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="number"
-                      value={candidate.vote}
-                      onChange={(e) =>
-                        handleVoteChange(candidate.id, parseInt(e.target.value))
-                      }
-                      className="w-20 p-1 border rounded"
-                    />
-                  </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-bold text-green-600">
-                      {candidate.isWinner ? "Winner" : ""}
-                    </div>
-                  </td> */}
+      {Object.entries(sortedGroupedCandidates).map(
+        ([electionType, candidates]) => (
+          <div key={electionType} className="mb-8">
+            <h2 className="text-xl font-bold my-4">{electionType}</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      NIN
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Region
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subregion
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      District
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Constituency/Municipality
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subcounty/Division
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Parish/Ward
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Village/Cell
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Votes
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {candidates.map(
+                    (candidate: Candidate & { isWinner?: boolean }) => (
+                      <tr
+                        key={candidate.id}
+                        className={candidate.isWinner ? "bg-yellow-100" : ""}
+                      >
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {candidate.firstName} {candidate.lastName}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {candidate.ninNumber}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {candidate.phoneNumber}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getName(candidate.region, regions)}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getName(candidate.subregion, subregions)}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getName(candidate.district, districts)}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getLocationName(
+                              candidate,
+                              "municipality",
+                              "constituency",
+                              municipalities,
+                              constituencies
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getLocationName(
+                              candidate,
+                              "division",
+                              "subcounty",
+                              divisions,
+                              subcounties
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getLocationName(
+                              candidate,
+                              "ward",
+                              "parish",
+                              wards,
+                              parishes
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {getLocationName(
+                              candidate,
+                              "cell",
+                              "village",
+                              cells,
+                              villages
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <input
+                            type="number"
+                            value={editingVotes[candidate.id] || 0}
+                            onChange={(e) =>
+                              handleVoteChange(
+                                candidate.id,
+                                parseInt(e.target.value)
+                              )
+                            }
+                            className="w-16 p-1 border rounded text-sm mr-2"
+                          />
+                          <button
+                            onClick={() => handleVoteSubmit(candidate.id)}
+                            className={`px-2 py-1 text-white rounded text-sm ${
+                              editingVotes[candidate.id] !==
+                              initialVotes[candidate.id]
+                                ? "bg-gray-950 hover:bg-gray-900"
+                                : "bg-gray-400 cursor-not-allowed"
+                            }`}
+                            disabled={
+                              editingVotes[candidate.id] ===
+                              initialVotes[candidate.id]
+                            }
+                          >
+                            Submit
+                          </button>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {candidate.isWinner ? (
+                            <span className="text-green-600 text-sm">
+                              Winner
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 text-sm">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      )}
 
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {activeTab !== "all" && candidate.isWinner ? (
-                      <span className="text-green-600">Winner</span>
-                    ) : (
-                      <span className="text-gray-500">—</span> // Placeholder for non-winners or when on the "All" tab
-                    )}
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

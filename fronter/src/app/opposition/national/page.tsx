@@ -1,6 +1,14 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  CheckCircle,
+  X,
+} from "lucide-react";
 import {
   useGetRegionsQuery,
   useGetSubregionsQuery,
@@ -67,6 +75,11 @@ interface OppositionCandidate {
 }
 
 const NationalOpposition: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: nationalCandidates } = useGetNationalsQuery({});
   const { data: oppositionCandidates, refetch } =
     useGetNationalOppositionCandidatesQuery({});
@@ -183,38 +196,33 @@ const NationalOpposition: React.FC = () => {
         await createOppositionCandidate(dataToSubmit).unwrap();
       }
       refetch();
-      alert(
-        `Opposition candidate ${editMode ? "updated" : "added"} successfully!`
-      );
+      setOperationResult({
+        success: true,
+        message: `Candidate ${editMode ? "updated" : "added"} successfully!`,
+      });
       setIsPopupOpen(false);
       resetForm();
-    } catch (error) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} opposition candidate:`,
-        error
-      );
-      alert(
-        `Failed to ${
-          editMode ? "update" : "add"
-        } opposition candidate. Please try again.`
-      );
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this opposition candidate?"
-      )
-    ) {
-      try {
-        await deleteOppositionCandidate(id).unwrap();
-        refetch();
-        alert("Opposition candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete opposition candidate:", error);
-        alert("Failed to delete opposition candidate. Please try again.");
-      }
+    try {
+      await deleteOppositionCandidate(id).unwrap();
+      refetch();
+      setOperationResult({
+        success: true,
+        message: "Opposition candidate deleted successfully!",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
@@ -383,7 +391,7 @@ const NationalOpposition: React.FC = () => {
                     setEditMode(true);
                     setOppositionCandidate(candidate as OppositionCandidate);
                   }}
-                  className="text-blue-500 hover:text-blue-700"
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   <Pencil size={18} />
                 </button>
@@ -938,7 +946,7 @@ const NationalOpposition: React.FC = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   type="submit"
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  className="bg-gray-950 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded"
                 >
                   {editMode ? "Update" : "Add"} Candidate
                 </button>
@@ -954,6 +962,40 @@ const NationalOpposition: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

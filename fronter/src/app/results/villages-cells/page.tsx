@@ -15,6 +15,7 @@ import {
   useGetWardsQuery,
   useGetCellsQuery,
 } from "@/state/api";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface VillageCellCandidate {
   id: string;
@@ -41,11 +42,22 @@ interface VillageCellCandidate {
 }
 
 const VillageCellResults = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const [updateVillageCellsCandidate] =
     useUpdateVillageCellsCandidateMutation();
   const { data: villageCellCandidates, refetch } =
     useGetVillageCellsCandidatesQuery({});
   const [activeTab, setActiveTab] = useState("all");
+  const [editingVotes, setEditingVotes] = useState<{ [key: string]: number }>(
+    {}
+  );
+  const [initialVotes, setInitialVotes] = useState<{ [key: string]: number }>(
+    {}
+  );
 
   // Fetch location data
   const { data: regions } = useGetRegionsQuery();
@@ -64,13 +76,41 @@ const VillageCellResults = () => {
     refetch();
   }, [refetch]);
 
-  const handleVoteChange = async (id: string, votes: number) => {
+  useEffect(() => {
+    if (villageCellCandidates) {
+      const votes = villageCellCandidates.reduce(
+        (acc: any, candidate: VillageCellCandidate) => {
+          acc[candidate.id] = candidate.vote;
+          return acc;
+        },
+        {} as { [key: string]: number }
+      );
+      setInitialVotes(votes);
+      setEditingVotes(votes);
+    }
+  }, [villageCellCandidates]);
+
+  const handleVoteChange = (id: string, votes: number) => {
+    setEditingVotes((prev) => ({ ...prev, [id]: votes }));
+  };
+
+  const handleVoteSubmit = async (id: string) => {
     try {
-      await updateVillageCellsCandidate({ id, vote: votes }).unwrap();
+      await updateVillageCellsCandidate({
+        id,
+        vote: editingVotes[id],
+      }).unwrap();
       refetch();
-    } catch (error) {
-      console.error("Failed to update votes:", error);
-      alert("Failed to update votes. Please try again.");
+      setOperationResult({
+        success: true,
+        message: `Candidate vote updated successfully!`,
+      });
+      setInitialVotes((prev) => ({ ...prev, [id]: editingVotes[id] }));
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data?.error || "Failed to update candidate vote.",
+      });
     }
   };
 
@@ -270,12 +310,25 @@ const VillageCellResults = () => {
                 <td className="px-3 py-2 whitespace-nowrap">
                   <input
                     type="number"
-                    value={candidate.vote}
+                    value={editingVotes[candidate.id] || 0}
                     onChange={(e) =>
                       handleVoteChange(candidate.id, parseInt(e.target.value))
                     }
-                    className="w-16 p-1 border rounded text-sm"
+                    className="w-16 p-1 border rounded text-sm mr-2"
                   />
+                  <button
+                    onClick={() => handleVoteSubmit(candidate.id)}
+                    className={`px-2 py-1 text-white rounded text-sm ${
+                      editingVotes[candidate.id] !== initialVotes[candidate.id]
+                        ? "bg-gray-950 hover:bg-gray-900"
+                        : "bg-gray-400 cursor-not-allowed"
+                    }`}
+                    disabled={
+                      editingVotes[candidate.id] === initialVotes[candidate.id]
+                    }
+                  >
+                    Submit
+                  </button>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   {candidate === winner ? (
@@ -347,6 +400,40 @@ const VillageCellResults = () => {
               return renderCandidateTable(candidates, category, position);
             }
           )}
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>

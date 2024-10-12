@@ -1,6 +1,14 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
-import { Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  CheckCircle,
+  X,
+} from "lucide-react";
 import {
   useGetRegionsQuery,
   useGetSubregionsQuery,
@@ -20,51 +28,12 @@ import {
   useGetConstituencyMunicipalityCandidatesQuery,
 } from "@/state/api";
 
-interface Candidate {
-  id: string;
-  ninNumber: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  region: string;
-  subregion: string;
-  district: string;
-  constituency?: string;
-  subcounty?: string;
-  parish?: string;
-  village?: string;
-  municipality?: string;
-  division?: string;
-  ward?: string;
-  cell?: string;
-  constituencyMunicipalityElectionType: string;
-  isQualified: boolean;
-  vote: number;
-}
-
-interface OppositionCandidate {
-  id?: string;
-  ninNumber: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  region: string;
-  subregion: string;
-  district: string;
-  constituency?: string;
-  subcounty?: string;
-  parish?: string;
-  village?: string;
-  municipality?: string;
-  division?: string;
-  ward?: string;
-  cell?: string;
-  constituencyMunicipalityElectionType: string;
-  vote: number;
-  party: string;
-}
-
 const ConstituencyMunicipalityOpposition: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: constituencyMunicipalityCandidates } =
     useGetConstituencyMunicipalityCandidatesQuery({});
   const { data: oppositionCandidates, refetch } =
@@ -92,27 +61,27 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [hasCity, setHasCity] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [oppositionCandidate, setOppositionCandidate] =
-    useState<OppositionCandidate>({
-      ninNumber: "",
-      firstName: "",
-      lastName: "",
-      phoneNumber: "",
-      region: "",
-      subregion: "",
-      district: "",
-      constituency: "",
-      subcounty: "",
-      parish: "",
-      village: "",
-      municipality: "",
-      division: "",
-      ward: "",
-      cell: "",
-      constituencyMunicipalityElectionType: "mps",
-      vote: 0,
-      party: "",
-    });
+  const [oppositionCandidate, setOppositionCandidate] = useState({
+    id: "",
+    ninNumber: "",
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+    region: "",
+    subregion: "",
+    district: "",
+    constituency: "",
+    subcounty: "",
+    parish: "",
+    village: "",
+    municipality: "",
+    division: "",
+    ward: "",
+    cell: "",
+    constituencyMunicipalityElectionType: "mps",
+    vote: 0,
+    party: "",
+  });
 
   useEffect(() => {
     refetch();
@@ -137,25 +106,60 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
 
   const validateForm = () => {
     const requiredFields = [
+      "ninNumber",
+      "firstName",
+      "lastName",
+      "phoneNumber",
       "region",
       "subregion",
       "district",
       "constituencyMunicipalityElectionType",
       "party",
-      "ninNumber",
-      "firstName",
-      "lastName",
-      "phoneNumber",
     ];
+
     for (let field of requiredFields) {
-      if (!oppositionCandidate[field as keyof OppositionCandidate]) {
-        alert(`Please fill the ${field} field`);
+      if (!oppositionCandidate[field as keyof typeof oppositionCandidate]) {
+        setOperationResult({
+          success: false,
+          message: `Please fill the ${field} field`,
+        });
+        return false;
+      }
+    }
+
+    if (hasCity) {
+      if (
+        !oppositionCandidate.municipality ||
+        !oppositionCandidate.division ||
+        !oppositionCandidate.ward
+      ) {
+        setOperationResult({
+          success: false,
+          message:
+            "For urban areas, please fill municipality, division, and ward",
+        });
+        return false;
+      }
+    } else {
+      if (
+        !oppositionCandidate.constituency ||
+        !oppositionCandidate.subcounty ||
+        !oppositionCandidate.parish
+      ) {
+        setOperationResult({
+          success: false,
+          message:
+            "For rural areas, please fill constituency, subcounty, and parish",
+        });
         return false;
       }
     }
 
     if (isNaN(Number(oppositionCandidate.vote))) {
-      alert("Vote must be a number");
+      setOperationResult({
+        success: false,
+        message: "Vote must be a number",
+      });
       return false;
     }
 
@@ -172,10 +176,12 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
         vote: Number(oppositionCandidate.vote),
       };
 
+      // Remove undefined or empty string values
       Object.keys(dataToSubmit).forEach(
         (key) =>
-          dataToSubmit[key as keyof OppositionCandidate] === undefined &&
-          delete dataToSubmit[key as keyof OppositionCandidate]
+          (dataToSubmit[key as keyof typeof dataToSubmit] === undefined ||
+            dataToSubmit[key as keyof typeof dataToSubmit] === "") &&
+          delete dataToSubmit[key as keyof typeof dataToSubmit]
       );
 
       if (editMode && oppositionCandidate.id) {
@@ -184,52 +190,45 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
         await createOppositionCandidate(dataToSubmit).unwrap();
       }
       refetch();
-      alert(
-        `Opposition candidate ${editMode ? "updated" : "added"} successfully!`
-      );
+      setOperationResult({
+        success: true,
+        message: `Opposition candidate ${
+          editMode ? "updated" : "added"
+        } successfully!`,
+      });
       setIsPopupOpen(false);
       resetForm();
     } catch (error: any) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} opposition candidate:`,
-        error
-      );
-      if (error.data && error.data.error) {
-        console.error("Server error message:", error.data.error);
-        alert(
-          `Failed to ${editMode ? "update" : "add"} opposition candidate. ${
-            error.data.error
-          }`
-        );
-      } else {
-        alert(
-          `Failed to ${
-            editMode ? "update" : "add"
-          } opposition candidate. Please try again.`
-        );
-      }
+      console.error("Error submitting candidate:", error);
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error || "Failed to submit candidate. Please try again.",
+      });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this opposition candidate?"
-      )
-    ) {
-      try {
-        await deleteOppositionCandidate(id).unwrap();
-        refetch();
-        alert("Opposition candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete opposition candidate:", error);
-        alert("Failed to delete opposition candidate. Please try again.");
-      }
+    try {
+      await deleteOppositionCandidate(id).unwrap();
+      refetch();
+      setOperationResult({
+        success: true,
+        message: "Opposition candidate deleted successfully!",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error ||
+          "Failed to delete opposition candidate. Please try again.",
+      });
     }
   };
 
   const resetForm = () => {
     setOppositionCandidate({
+      id: "",
       ninNumber: "",
       firstName: "",
       lastName: "",
@@ -259,20 +258,6 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
     return item ? item.name : "";
   };
 
-  const getLocationName = (
-    candidate: OppositionCandidate,
-    cityField: keyof OppositionCandidate,
-    ruralField: keyof OppositionCandidate,
-    cityData: any[] | undefined,
-    ruralData: any[] | undefined
-  ) => {
-    if (candidate[cityField]) {
-      return getName(candidate[cityField] as string, cityData || []);
-    } else {
-      return getName(candidate[ruralField] as string, ruralData || []);
-    }
-  };
-
   const groupWinnersByType = (candidates: any[]) => {
     const grouped: { [key: string]: any } = {};
     candidates.forEach((candidate) => {
@@ -299,7 +284,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
   };
 
   const renderCandidateRow = (
-    candidate: OppositionCandidate,
+    candidate: any,
     bgColor: string,
     isOpposition: boolean = false
   ) => (
@@ -386,7 +371,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                     setEditMode(true);
                     setOppositionCandidate(candidate);
                   }}
-                  className="text-blue-500 hover:text-blue-700"
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   <Pencil size={18} />
                 </button>
@@ -420,10 +405,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
     </div>
   );
 
-  const renderOppositionTable = (
-    oppositionCandidates: OppositionCandidate[],
-    type: string
-  ) => (
+  const renderOppositionTable = (oppositionCandidates: any[], type: string) => (
     <div key={`${type}-opposition`} className="mb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
         <h3 className="text-lg font-semibold mb-2 sm:mb-0">
@@ -433,26 +415,11 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
           onClick={() => {
             setIsPopupOpen(true);
             setEditMode(false);
-            setOppositionCandidate({
-              ninNumber: "",
-              firstName: "",
-              lastName: "",
-              phoneNumber: "",
-              region: "",
-              subregion: "",
-              district: "",
-              constituency: "",
-              subcounty: "",
-              parish: "",
-              village: "",
-              municipality: "",
-              division: "",
-              ward: "",
-              cell: "",
-              constituencyMunicipalityElectionType: "mps",
-              vote: 0,
-              party: "",
-            });
+            resetForm();
+            setOppositionCandidate((prev) => ({
+              ...prev,
+              constituencyMunicipalityElectionType: type,
+            }));
           }}
           className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
         >
@@ -482,12 +449,12 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
           {renderWinnerTable(winner, type)}
           {oppositionCandidates &&
           oppositionCandidates.filter(
-            (candidate: OppositionCandidate) =>
+            (candidate: any) =>
               candidate.constituencyMunicipalityElectionType === type
           ).length > 0 ? (
             renderOppositionTable(
               oppositionCandidates.filter(
-                (candidate: OppositionCandidate) =>
+                (candidate: any) =>
                   candidate.constituencyMunicipalityElectionType === type
               ),
               type
@@ -498,26 +465,11 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 onClick={() => {
                   setIsPopupOpen(true);
                   setEditMode(false);
-                  setOppositionCandidate({
-                    ninNumber: "",
-                    firstName: "",
-                    lastName: "",
-                    phoneNumber: "",
-                    region: "",
-                    subregion: "",
-                    district: "",
-                    constituency: "",
-                    subcounty: "",
-                    parish: "",
-                    village: "",
-                    municipality: "",
-                    division: "",
-                    ward: "",
-                    cell: "",
+                  resetForm();
+                  setOppositionCandidate((prev) => ({
+                    ...prev,
                     constituencyMunicipalityElectionType: type,
-                    vote: 0,
-                    party: "",
-                  });
+                  }));
                 }}
                 className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
               >
@@ -530,14 +482,13 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
 
       {/* Popup for adding/editing opposition candidate */}
       {isPopupOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 shadow-xl w-full">
-          <div className="bg-white p-8 rounded w-full max-w-3xl">
-            <h2 className="text-2xl font-bold mb-6">
-              {editMode
-                ? "Edit Opposition Candidate"
-                : "Add Opposition Candidate"}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-2xl">
+            <h2 className="text-2xl font-bold mb-4">
+              {editMode ? "Edit" : "Add"} Opposition Candidate
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
@@ -575,6 +526,10 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                   className="w-full p-2 border rounded"
                   required
                 />
+              </div>
+
+              {/* Party and Votes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
                   name="party"
@@ -595,6 +550,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 />
               </div>
 
+              {/* Region and Subregion */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <select
                   name="region"
@@ -632,6 +588,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 </select>
               </div>
 
+              {/* District and Constituency/Municipality */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <select
                   name="district"
@@ -656,9 +613,10 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 {!hasCity ? (
                   <select
                     name="constituency"
-                    value={oppositionCandidate.constituency || ""}
+                    value={oppositionCandidate.constituency}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
+                    required
                   >
                     <option value="">Select Constituency</option>
                     {constituencies
@@ -676,9 +634,10 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 ) : (
                   <select
                     name="municipality"
-                    value={oppositionCandidate.municipality || ""}
+                    value={oppositionCandidate.municipality}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
+                    required
                   >
                     <option value="">Select Municipality</option>
                     {municipalities
@@ -696,95 +655,103 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 )}
               </div>
 
-              {!hasCity ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <select
-                    name="subcounty"
-                    value={oppositionCandidate.subcounty || ""}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">Select Subcounty</option>
-                    {subcounties
-                      ?.filter(
-                        (subcounty: any) =>
-                          subcounty.constituencyId ===
-                          parseInt(oppositionCandidate.constituency || "0")
-                      )
-                      .map((subcounty: any) => (
-                        <option key={subcounty.id} value={subcounty.id}>
-                          {subcounty.name}
-                        </option>
-                      ))}
-                  </select>
-                  <select
-                    name="parish"
-                    value={oppositionCandidate.parish || ""}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">Select Parish</option>
-                    {parishes
-                      ?.filter(
-                        (parish: any) =>
-                          parish.subcountyId ===
-                          parseInt(oppositionCandidate.subcounty || "0")
-                      )
-                      .map((parish: any) => (
-                        <option key={parish.id} value={parish.id}>
-                          {parish.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <select
-                    name="division"
-                    value={oppositionCandidate.division || ""}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">Select Division</option>
-                    {divisions
-                      ?.filter(
-                        (division: any) =>
-                          division.municipalityId ===
-                          parseInt(oppositionCandidate.municipality || "0")
-                      )
-                      .map((division: any) => (
-                        <option key={division.id} value={division.id}>
-                          {division.name}
-                        </option>
-                      ))}
-                  </select>
-                  <select
-                    name="ward"
-                    value={oppositionCandidate.ward || ""}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">Select Ward</option>
-                    {wards
-                      ?.filter(
-                        (ward: any) =>
-                          ward.divisionId ===
-                          parseInt(oppositionCandidate.division || "0")
-                      )
-                      .map((ward: any) => (
-                        <option key={ward.id} value={ward.id}>
-                          {ward.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-
+              {/* Subcounty/Division and Parish/Ward */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {!hasCity && (
+                {!hasCity ? (
+                  <>
+                    <select
+                      name="subcounty"
+                      value={oppositionCandidate.subcounty}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="">Select Subcounty</option>
+                      {subcounties
+                        ?.filter(
+                          (subcounty: any) =>
+                            subcounty.constituencyId ===
+                            parseInt(oppositionCandidate.constituency)
+                        )
+                        .map((subcounty: any) => (
+                          <option key={subcounty.id} value={subcounty.id}>
+                            {subcounty.name}
+                          </option>
+                        ))}
+                    </select>
+                    <select
+                      name="parish"
+                      value={oppositionCandidate.parish}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="">Select Parish</option>
+                      {parishes
+                        ?.filter(
+                          (parish: any) =>
+                            parish.subcountyId ===
+                            parseInt(oppositionCandidate.subcounty)
+                        )
+                        .map((parish: any) => (
+                          <option key={parish.id} value={parish.id}>
+                            {parish.name}
+                          </option>
+                        ))}
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      name="division"
+                      value={oppositionCandidate.division}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="">Select Division</option>
+                      {divisions
+                        ?.filter(
+                          (division: any) =>
+                            division.municipalityId ===
+                            parseInt(oppositionCandidate.municipality)
+                        )
+                        .map((division: any) => (
+                          <option key={division.id} value={division.id}>
+                            {division.name}
+                          </option>
+                        ))}
+                    </select>
+                    <select
+                      name="ward"
+                      value={oppositionCandidate.ward}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded"
+                      required
+                    >
+                      <option value="">Select Ward</option>
+                      {wards
+                        ?.filter(
+                          (ward: any) =>
+                            ward.divisionId ===
+                            parseInt(oppositionCandidate.division)
+                        )
+                        .map((ward: any) => (
+                          <option key={ward.id} value={ward.id}>
+                            {ward.name}
+                          </option>
+                        ))}
+                    </select>
+                  </>
+                )}
+              </div>
+
+              {/* Village/Cell */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {!hasCity ? (
                   <select
                     name="village"
-                    value={oppositionCandidate.village || ""}
+                    value={oppositionCandidate.village}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
                   >
@@ -793,7 +760,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                       ?.filter(
                         (village: any) =>
                           village.parishId ===
-                          parseInt(oppositionCandidate.parish || "0")
+                          parseInt(oppositionCandidate.parish)
                       )
                       .map((village: any) => (
                         <option key={village.id} value={village.id}>
@@ -801,11 +768,10 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                         </option>
                       ))}
                   </select>
-                )}
-                {hasCity && (
+                ) : (
                   <select
                     name="cell"
-                    value={oppositionCandidate.cell || ""}
+                    value={oppositionCandidate.cell}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
                   >
@@ -813,8 +779,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                     {cells
                       ?.filter(
                         (cell: any) =>
-                          cell.wardId ===
-                          parseInt(oppositionCandidate.ward || "0")
+                          cell.wardId === parseInt(oppositionCandidate.ward)
                       )
                       .map((cell: any) => (
                         <option key={cell.id} value={cell.id}>
@@ -825,10 +790,11 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 )}
               </div>
 
+              {/* Submit and Cancel buttons */}
               <div className="flex justify-end space-x-2">
                 <button
                   type="submit"
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  className="bg-gray-950 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded"
                 >
                   {editMode ? "Update" : "Add"} Candidate
                 </button>
@@ -836,7 +802,7 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setIsPopupOpen(false);
-                    setEditMode(false);
+                    resetForm();
                   }}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
                 >
@@ -844,6 +810,40 @@ const ConstituencyMunicipalityOpposition: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

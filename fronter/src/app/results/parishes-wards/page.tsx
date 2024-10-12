@@ -15,6 +15,7 @@ import {
   useGetWardsQuery,
   useGetCellsQuery,
 } from "@/state/api";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface Candidate {
   id: string;
@@ -41,9 +42,20 @@ interface Candidate {
 }
 
 const ParishWardResults = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const [updateCandidate] = useUpdateParishesWardsCandidateMutation();
   const { data: candidates, refetch } = useGetParishesWardsCandidatesQuery({});
   const [activeTab, setActiveTab] = useState("all");
+  const [editingVotes, setEditingVotes] = useState<{ [key: string]: number }>(
+    {}
+  );
+  const [initialVotes, setInitialVotes] = useState<{ [key: string]: number }>(
+    {}
+  );
 
   // Fetch location data
   const { data: regions } = useGetRegionsQuery();
@@ -62,13 +74,35 @@ const ParishWardResults = () => {
     refetch();
   }, [refetch]);
 
-  const handleVoteChange = async (id: string, votes: number) => {
+  useEffect(() => {
+    if (candidates) {
+      const votes = candidates.reduce((acc: any, candidate: Candidate) => {
+        acc[candidate.id] = candidate.vote;
+        return acc;
+      }, {} as { [key: string]: number });
+      setInitialVotes(votes);
+      setEditingVotes(votes);
+    }
+  }, [candidates]);
+
+  const handleVoteChange = (id: string, votes: number) => {
+    setEditingVotes((prev) => ({ ...prev, [id]: votes }));
+  };
+
+  const handleVoteSubmit = async (id: string) => {
     try {
-      await updateCandidate({ id, vote: votes }).unwrap();
+      await updateCandidate({ id, vote: editingVotes[id] }).unwrap();
       refetch();
-    } catch (error) {
-      console.error("Failed to update votes:", error);
-      alert("Failed to update votes. Please try again.");
+      setOperationResult({
+        success: true,
+        message: `Candidate vote updated successfully!`,
+      });
+      setInitialVotes((prev) => ({ ...prev, [id]: editingVotes[id] }));
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data?.error || "Failed to update candidate vote.",
+      });
     }
   };
 
@@ -93,17 +127,20 @@ const ParishWardResults = () => {
   };
 
   const groupCandidates = (candidates: Candidate[]) => {
-    const grouped: { [key: string]: { [key: string]: { [key: string]: Candidate[] } } } = {};
+    const grouped: {
+      [key: string]: { [key: string]: { [key: string]: Candidate[] } };
+    } = {};
     candidates.forEach((candidate) => {
       if (candidate.isQualified) {
         const type = candidate.parishwardElectionType;
         const category = candidate.category || "";
         const position = candidate.position || "";
-        
+
         if (!grouped[type]) grouped[type] = {};
         if (!grouped[type][category]) grouped[type][category] = {};
-        if (!grouped[type][category][position]) grouped[type][category][position] = [];
-        
+        if (!grouped[type][category][position])
+          grouped[type][category][position] = [];
+
         grouped[type][category][position].push(candidate);
       }
     });
@@ -115,37 +152,66 @@ const ParishWardResults = () => {
     Object.keys(groupedCandidates).forEach((type) => {
       Object.keys(groupedCandidates[type]).forEach((category) => {
         Object.keys(groupedCandidates[type][category]).forEach((position) => {
-          groupedCandidates[type][category][position].sort((a, b) => b.vote - a.vote);
+          groupedCandidates[type][category][position].sort(
+            (a, b) => b.vote - a.vote
+          );
         });
       });
     });
     return groupedCandidates;
   }, [candidates]);
 
-  const renderCandidateTable = (candidates: Candidate[], category: string, position: string) => {
+  const renderCandidateTable = (
+    candidates: Candidate[],
+    category: string,
+    position: string
+  ) => {
     const winner = candidates[0];
     return (
       <div className="mb-8 overflow-x-auto">
         <h3 className="text-lg font-semibold mt-4 mb-2">
-        {/* ///No category */}
           {category ? `Category: ${category}` : ""}
           {position && ` - Position: ${position}`}
         </h3>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIN</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subregion</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Constituency/Municipality</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subcounty/Division</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parish/Ward</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Village/Cell</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Votes</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                NIN
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Phone
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Region
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Subregion
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                District
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Constituency/Municipality
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Subcounty/Division
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Parish/Ward
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Village/Cell
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Votes
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -160,47 +226,96 @@ const ParishWardResults = () => {
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{candidate.ninNumber}</div>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{candidate.phoneNumber}</div>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{getName(candidate.region, regions)}</div>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{getName(candidate.subregion, subregions)}</div>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{getName(candidate.district, districts)}</div>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {getLocationName(candidate, "municipality", "constituency", municipalities, constituencies)}
+                    {candidate.ninNumber}
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {getLocationName(candidate, "division", "subcounty", divisions, subcounties)}
+                    {candidate.phoneNumber}
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {getLocationName(candidate, "ward", "parish", wards, parishes)}
+                    {getName(candidate.region, regions)}
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {getLocationName(candidate, "cell", "village", cells, villages)}
+                    {getName(candidate.subregion, subregions)}
+                  </div>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {getName(candidate.district, districts)}
+                  </div>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {getLocationName(
+                      candidate,
+                      "municipality",
+                      "constituency",
+                      municipalities,
+                      constituencies
+                    )}
+                  </div>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {getLocationName(
+                      candidate,
+                      "division",
+                      "subcounty",
+                      divisions,
+                      subcounties
+                    )}
+                  </div>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {getLocationName(
+                      candidate,
+                      "ward",
+                      "parish",
+                      wards,
+                      parishes
+                    )}
+                  </div>
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {getLocationName(
+                      candidate,
+                      "cell",
+                      "village",
+                      cells,
+                      villages
+                    )}
                   </div>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <input
                     type="number"
-                    value={candidate.vote}
-                    onChange={(e) => handleVoteChange(candidate.id, parseInt(e.target.value))}
-                    className="w-16 p-1 border rounded text-sm"
+                    value={editingVotes[candidate.id] || 0}
+                    onChange={(e) =>
+                      handleVoteChange(candidate.id, parseInt(e.target.value))
+                    }
+                    className="w-16 p-1 border rounded text-sm mr-2"
                   />
+                  <button
+                    onClick={() => handleVoteSubmit(candidate.id)}
+                    className={`px-2 py-1 text-white rounded text-sm ${
+                      editingVotes[candidate.id] !== initialVotes[candidate.id]
+                        ? "bg-gray-950 hover:bg-gray-900"
+                        : "bg-gray-400 cursor-not-allowed"
+                    }`}
+                    disabled={
+                      editingVotes[candidate.id] === initialVotes[candidate.id]
+                    }
+                  >
+                    Submit
+                  </button>
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   {candidate === winner ? (
@@ -217,12 +332,15 @@ const ParishWardResults = () => {
     );
   };
 
-  const renderElectionTypeContent = (type: string, categoryPositions: { [key: string]: { [key: string]: Candidate[] } }) => {
+  const renderElectionTypeContent = (
+    type: string,
+    categoryPositions: { [key: string]: { [key: string]: Candidate[] } }
+  ) => {
     return (
       <div key={type}>
         <h2 className="text-xl font-bold my-4">{type}</h2>
-        {Object.entries(categoryPositions).map(([category, positions]) => 
-          Object.entries(positions).map(([position, candidates]) => 
+        {Object.entries(categoryPositions).map(([category, positions]) =>
+          Object.entries(positions).map(([position, candidates]) =>
             renderCandidateTable(candidates, category, position)
           )
         )}
@@ -258,12 +376,48 @@ const ParishWardResults = () => {
       </div>
 
       {/* Render tables for selected election type */}
-      {activeTab === "all" ? (
-        Object.entries(sortedGroupedCandidates).map(([type, categoryPositions]) =>
-          renderElectionTypeContent(type, categoryPositions)
-        )
-      ) : (
-        renderElectionTypeContent(activeTab, sortedGroupedCandidates[activeTab] || {})
+      {activeTab === "all"
+        ? Object.entries(sortedGroupedCandidates).map(
+            ([type, categoryPositions]) =>
+              renderElectionTypeContent(type, categoryPositions)
+          )
+        : renderElectionTypeContent(
+            activeTab,
+            sortedGroupedCandidates[activeTab] || {}
+          )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -18,7 +18,7 @@ import {
   useGetNationalsQuery,
 } from "@/state/api";
 
-import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface Candidate {
   id: string;

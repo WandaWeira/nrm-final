@@ -1,8 +1,16 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { getSession } from 'next-auth/react';
 
-// Define your models
 export interface UnitModel {
+  id: number;
+  name: string;
+  subcountyId?: number;
+  divisionId?: number;
+  parishId?: number;
+  wardId?: number;
+}
+
+export interface RegionModel {
   id: number;
   name: string;
 }
@@ -10,12 +18,8 @@ export interface UnitModel {
 
 export interface SubregionModel extends UnitModel {
   regionId: number;
-  region?: UnitModel; // Contains the region object
+  region?: UnitModel;
 }
-
-// export interface DistrictModel extends UnitModel {
-//   subregionId: number;
-// }
 
 export interface DistrictModel extends UnitModel {
   subregionId: number;
@@ -49,11 +53,8 @@ export interface User {
   ninNumber: string;
   email: string;
   password: string;
-  role: string; // e.g., 'District Registrar', 'Regional Coordinator', etc.
+  role: string; 
   phoneNumber: string; 
-  // address?: string; // Optional
-  // createdAt?: string; // Optional
-  // updatedAt?: string; // Optional
 }
 
 // 19/09/2024-----------------------START
@@ -64,6 +65,17 @@ export interface ConstituencyModel extends UnitModel {
 export interface MunicipalityModel extends UnitModel {
   districtId: number;
 }
+
+/////
+export interface SubcountyModel extends UnitModel {
+  constituencyId: number;
+}
+
+export interface DivisionModel extends UnitModel {
+  municipalityId: number;
+}
+
+
 
 export interface Registra {
   id: number;
@@ -82,9 +94,7 @@ export interface ConstituencyRegistra extends Registra {
 export interface MunicipalityRegistra extends Registra {
   municipalityId: number;
 }
-// 19/09/2024-----------------------END
 
-// 24/09/2024-----------------------START
 export interface SubcountyModel extends UnitModel {
   constituencyId: number;
 }
@@ -100,8 +110,6 @@ export interface SubcountyRegistra extends Registra {
 export interface DivisionRegistra extends Registra {
   divisionId: number;
 }
-
-// 24/09/2024-----------------------END
 
 export interface ParishModel extends UnitModel {
   subcountyId: number;
@@ -366,11 +374,11 @@ export const api = createApi({
     }),
 
     // Regions endpoints
-    getRegions: build.query<UnitModel[], void>({
+    getRegions: build.query<RegionModel[], void>({
       query: () => 'regions',
       providesTags: ['Regions'],
     }),
-    addRegion: build.mutation<UnitModel, Partial<UnitModel>>({
+    addRegion: build.mutation<RegionModel, Partial<RegionModel>>({
       query: (newRegion) => ({
         url: 'regions',
         method: 'POST',
@@ -378,7 +386,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Regions'],
     }),
-    updateRegion: build.mutation<UnitModel, UnitModel>({
+    updateRegion: build.mutation<RegionModel, RegionModel>({
       query: (updatedRegion) => ({
         url: `regions/${updatedRegion.id}`,
         method: 'PUT',
@@ -730,7 +738,7 @@ export const api = createApi({
     //   query: () => 'districts',
     //   providesTags: ['Districts'],
     // }),
-    getConstituencies: build.query<UnitModel[], void>({
+    getConstituencies: build.query<ConstituencyModel[], void>({
       query: () => 'constituencies',
       providesTags: ['Constituencies'],
     }),
@@ -750,15 +758,11 @@ export const api = createApi({
       query: () => 'villages',
       providesTags: ['Villages'],
     }),
-    // getDivisions: build.query<UnitModel[], void>({
-    //   query: () => 'divisions',
-    //   providesTags: ['Divisions'],
-    // }),
     getDivisions: build.query<DivisionModel[], void>({
       query: () => 'divisions',
       providesTags: ['Divisions'],
     }),
-    getMunicipalities: build.query<UnitModel[], void>({
+    getMunicipalities: build.query<MunicipalityModel[], void>({
       query: () => 'municipalities',
       providesTags: ['Municipalities'],
     }),

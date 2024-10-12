@@ -10,11 +10,13 @@ import {
   ChevronUp,
   Layers,
   PieChart,
+  Folders,
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "@/app/redux";
 import { setIsSidebarCollapsed } from "@/state";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 // SidebarLink component
 interface SidebarLinkProps {
@@ -64,7 +66,7 @@ interface SidebarDropdownProps {
   units: string[];
   isOpen: boolean;
   toggleDropdown: () => void;
-  pathname: string; // Add this line
+  pathname: string;
 }
 
 const SidebarDropdown = ({
@@ -74,7 +76,7 @@ const SidebarDropdown = ({
   units,
   isOpen,
   toggleDropdown,
-  pathname, // Add this line
+  pathname,
 }: SidebarDropdownProps) => {
   return (
     <div>
@@ -133,7 +135,8 @@ const Sidebar = () => {
   const isSidebarCollapsed = useAppSelector(
     (state) => state.global.isSidebarCollapsed
   );
-  const pathname = usePathname(); // Get the current pathname
+  const pathname = usePathname();
+  const { data: session } = useSession();
 
   const toggleSidebar = () =>
     dispatch(setIsSidebarCollapsed(!isSidebarCollapsed));
@@ -162,13 +165,15 @@ const Sidebar = () => {
   // Electoral Positions
   const electoralPositions = [
     "National",
-    // "Regional",
     "Districts",
     "Constituencies-Municipalities",
     "Subcounties-Divisions",
     "Parishes-Wards",
     "Villages-Cells",
   ];
+
+  //Reports
+  const reportUnits = ["Administrative-Units", "Electoral-Positions"];
 
   return (
     <div className={sidebarClassNames}>
@@ -202,12 +207,14 @@ const Sidebar = () => {
           label="Dashboard"
           isCollaped={isSidebarCollapsed}
         />
-        <SidebarLink
-          href="/users"
-          icon={Users}
-          label="Users"
-          isCollaped={isSidebarCollapsed}
-        />
+        {session?.user?.role === "SuperAdmin" && (
+          <SidebarLink
+            href="/users"
+            icon={Users}
+            label="Users"
+            isCollaped={isSidebarCollapsed}
+          />
+        )}
 
         <SidebarDropdown
           label="Administrative Units"
@@ -216,7 +223,7 @@ const Sidebar = () => {
           units={administrativeUnits}
           isOpen={openDropdown === "Administrative Units"}
           toggleDropdown={() => toggleDropdown("Administrative Units")}
-          pathname={pathname} // Pass the pathname here
+          pathname={pathname}
         />
         <SidebarDropdown
           label="Electoral Positions"
@@ -225,7 +232,7 @@ const Sidebar = () => {
           units={electoralPositions}
           isOpen={openDropdown === "Electoral Positions"}
           toggleDropdown={() => toggleDropdown("Electoral Positions")}
-          pathname={pathname} // Pass the pathname here
+          pathname={pathname}
         />
         <SidebarDropdown
           label="Nominated Candidates"
@@ -234,7 +241,7 @@ const Sidebar = () => {
           units={electoralPositions}
           isOpen={openDropdown === "Nominated Candidates"}
           toggleDropdown={() => toggleDropdown("Nominated Candidates")}
-          pathname={pathname} // Pass the pathname here
+          pathname={pathname}
         />
         <SidebarDropdown
           label="Results"
@@ -243,9 +250,8 @@ const Sidebar = () => {
           units={electoralPositions}
           isOpen={openDropdown === "Results"}
           toggleDropdown={() => toggleDropdown("Results")}
-          pathname={pathname} // Pass the pathname here
+          pathname={pathname}
         />
-
         <SidebarDropdown
           label="General"
           icon={SlidersHorizontalIcon}
@@ -253,7 +259,17 @@ const Sidebar = () => {
           units={electoralPositions}
           isOpen={openDropdown === "general"}
           toggleDropdown={() => toggleDropdown("general")}
-          pathname={pathname} // Pass the pathname here
+          pathname={pathname}
+        />
+
+        <SidebarDropdown
+          label="Reports"
+          icon={Folders}
+          isCollaped={isSidebarCollapsed}
+          units={reportUnits}
+          isOpen={openDropdown === "reports"}
+          toggleDropdown={() => toggleDropdown("reports")}
+          pathname={pathname}
         />
       </div>
 

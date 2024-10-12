@@ -6,7 +6,16 @@ import {
   useUpdateUserMutation,
   useDeleteUserMutation,
 } from "@/state/api";
-import { Eye, EyeOff, Edit, Trash, Plus } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Edit,
+  Trash,
+  Plus,
+  AlertCircle,
+  CheckCircle,
+  X,
+} from "lucide-react";
 
 interface User {
   id: string;
@@ -27,6 +36,11 @@ const userRoles = [
 ];
 
 const UsersPage: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: users, isLoading, isError, refetch } = useGetUsersQuery();
   const [addUser] = useAddUserMutation();
   const [updateUser] = useUpdateUserMutation();
@@ -47,8 +61,15 @@ const UsersPage: React.FC = () => {
       setIsModalOpen(false);
       setNewUser({});
       refetch();
-    } catch (error) {
-      console.error("Error adding user:", error);
+      setOperationResult({
+        success: true,
+        message: "User added successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
@@ -60,8 +81,15 @@ const UsersPage: React.FC = () => {
         setIsModalOpen(false);
         setEditingUser(null);
         refetch();
-      } catch (error) {
-        console.error("Error updating user:", error);
+        setOperationResult({
+          success: true,
+          message: "User updated successfully",
+        });
+      } catch (error: any) {
+        setOperationResult({
+          success: false,
+          message: error.data.error,
+        });
       }
     }
   };
@@ -70,8 +98,15 @@ const UsersPage: React.FC = () => {
     try {
       await deleteUser(userId);
       refetch();
-    } catch (error) {
-      console.error("Error deleting user:", error);
+      setOperationResult({
+        success: true,
+        message: "User deleted successfully",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
@@ -157,8 +192,14 @@ const UsersPage: React.FC = () => {
       </table>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 shadow-xl">
-          <div className="bg-white p-8 rounded w-full max-w-3xl">
+        <div className="fixed inset-0 bg-black bg-opacity-100 flex items-center justify-center p-4 shadow-xl z-50">
+          <div className="bg-white p-8 rounded w-full max-w-3xl relative">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
             <h2 className="text-2xl font-bold mb-6">
               {editingUser ? "Edit User" : "Add New User"}
             </h2>
@@ -233,15 +274,56 @@ const UsersPage: React.FC = () => {
                 className="mb-4 w-full px-4 py-2 border rounded"
               />
 
-              <div className="flex justify-end">
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="bg-gray-950 text-white px-4 py-2 rounded hover:bg-gray-900"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
                 >
                   {editingUser ? "Update" : "Add"} User
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

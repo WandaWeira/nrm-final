@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { User } = require("../models");
 const bcrypt = require("bcrypt");
+const { authMiddleware, checkPermission } = require("../middleware/middleware");
 
-// Create a new user
-router.post("/add-user", async (req, res) => {
+// Create a new user (SuperAdmin only)
+router.post("/add-user", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
   try {
     const { password, ...userData } = req.body;
     const saltRounds = 10;
@@ -23,8 +24,8 @@ router.post("/add-user", async (req, res) => {
   }
 });
 
-// Get all users
-router.get("/users", async (req, res) => {
+// Get all users (SuperAdmin and PEO only)
+router.get("/users", authMiddleware, checkPermission(["SuperAdmin", "PEO"]), async (req, res) => {
   try {
     const users = await User.findAll();
     res.status(200).json(users);
@@ -33,8 +34,8 @@ router.get("/users", async (req, res) => {
   }
 });
 
-// Get a user by ID
-router.get("/users/:id", async (req, res) => {
+// Get a user by ID (SuperAdmin and PEO only)
+router.get("/users/:id", authMiddleware, checkPermission(["SuperAdmin", "PEO"]), async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
     if (user) {
@@ -47,8 +48,8 @@ router.get("/users/:id", async (req, res) => {
   }
 });
 
-// Update a user
-router.put("/users/:id", async (req, res) => {
+// Update a user (SuperAdmin only)
+router.put("/users/:id", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
   try {
     const [updated] = await User.update(req.body, {
       where: { id: req.params.id },
@@ -61,14 +62,13 @@ router.put("/users/:id", async (req, res) => {
       res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
-    console.error("Update error:", error.message); // Log error message
+    console.error("Update error:", error.message);
     res.status(400).json({ error: error.message });
   }
 });
 
-
-// Delete a user
-router.delete("/users/:id", async (req, res) => {
+// Delete a user (SuperAdmin only)
+router.delete("/users/:id", authMiddleware, checkPermission("SuperAdmin"), async (req, res) => {
   try {
     const deleted = await User.destroy({
       where: { id: req.params.id },

@@ -18,6 +18,8 @@ import {
   useGetNationalsQuery,
 } from "@/state/api";
 
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
+
 interface Candidate {
   id: string;
   ninNumber: string;
@@ -40,6 +42,11 @@ interface Candidate {
 }
 
 const National: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: regions } = useGetRegionsQuery();
   const { data: subregions } = useGetSubregionsQuery();
   const { data: districts } = useGetDistrictsQuery();
@@ -165,7 +172,12 @@ const National: React.FC = () => {
     );
 
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(", ")}`);
+      setOperationResult({
+        success: true,
+        message: `Please fill in all required fields: ${missingFields.join(
+          ", "
+        )}`,
+      });
       return;
     }
 
@@ -209,34 +221,66 @@ const National: React.FC = () => {
       }
       refetch();
       resetForm();
-      alert(`Candidate ${editMode ? "updated" : "added"} successfully!`);
-    } catch (error) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} candidate:`,
-        error
-      );
-      alert(
-        `Failed to ${editMode ? "update" : "add"} candidate. Please try again.`
-      );
+      setOperationResult({
+        success: true,
+        message: `Candidate ${editMode ? "updated" : "added"} successfully!`,
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
     }
   };
 
-  const handleEdit = (candidate: Candidate) => {
-    setCandidateData(candidate);
-    setElectionType(candidate.nationalElectionType);
-    setEditMode(true);
+  const handleEdit = async (candidate: Candidate) => {
+    try {
+      // Set the form data with the selected candidate's information
+      setCandidateData(candidate);
+      setElectionType(candidate.nationalElectionType);
+
+      // Determine if the candidate is from a city or rural area
+      const selectedDistrict = districts?.find(
+        (d) => d.id.toString() === candidate.district
+      );
+      setHasCity(selectedDistrict?.hasCity || false);
+
+      // Set the edit mode
+      setEditMode(true);
+
+      // Scroll to the form
+      const formElement = document.querySelector("form");
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: "smooth" });
+      }
+
+      // Optionally, you can refetch the data to ensure it's up to date
+      await refetch();
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.message || "An error occurred while editing the candidate.",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this candidate?")) {
-      try {
-        await deleteNational(id).unwrap();
-        refetch();
-        alert("Candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete candidate:", error);
-        alert("Failed to delete candidate. Please try again.");
-      }
+    // if (window.confirm("Are you sure you want to delete this candidate?")) {
+    try {
+      await deleteNational(id).unwrap();
+      refetch();
+      // alert("Candidate deleted successfully!");
+      setOperationResult({
+        success: true,
+        message: "Candidate deleted successfully!",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data.error,
+      });
+      // }
     }
   };
 
@@ -851,6 +895,40 @@ const National: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

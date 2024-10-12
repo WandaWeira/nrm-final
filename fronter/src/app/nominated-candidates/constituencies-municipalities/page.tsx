@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   useGetConstituencyMunicipalityCandidatesQuery,
@@ -15,8 +15,14 @@ import {
   useGetVillagesQuery,
   useGetCellsQuery,
 } from "@/state/api";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 const ConstituencyMunicipalityNominated = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: candidates, refetch } =
     useGetConstituencyMunicipalityCandidatesQuery({});
   const [updateCandidate] =
@@ -45,12 +51,15 @@ const ConstituencyMunicipalityNominated = () => {
     try {
       await updateCandidate({ id, isQualified }).unwrap();
       refetch();
-      // alert("Candidate qualification status updated successfully!");
-    } catch (error) {
-      console.error("Failed to update candidate qualification status:", error);
-      alert(
-        "Failed to update candidate qualification status. Please try again."
-      );
+      setOperationResult({
+        success: true,
+        message: `Candidate Nomination updated successfully!`,
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data?.error || "Failed to update candidate nomination.",
+      });
     }
   };
 
@@ -219,6 +228,39 @@ const ConstituencyMunicipalityNominated = () => {
           </table>
         </div>
       </div>
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

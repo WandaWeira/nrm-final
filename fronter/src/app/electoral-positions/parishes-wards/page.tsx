@@ -17,6 +17,7 @@ import {
   useDeleteParishesWardsCandidateMutation,
   useGetParishesWardsCandidatesQuery,
 } from "@/state/api";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface ParishesWardsCandidate {
   id: string;
@@ -41,6 +42,11 @@ interface ParishesWardsCandidate {
 }
 
 const ParishesWardsElections: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: regions } = useGetRegionsQuery();
   const { data: subregions } = useGetSubregionsQuery();
   const { data: districts } = useGetDistrictsQuery();
@@ -162,29 +168,23 @@ const ParishesWardsElections: React.FC = () => {
     );
 
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(", ")}`);
+      setOperationResult({
+        success: false,
+        message: `Please fill in all required fields: ${missingFields.join(
+          ", "
+        )}`,
+      });
       return;
     }
 
     try {
       const dataToSubmit: Partial<ParishesWardsCandidate> = {
-        ninNumber: candidateData.ninNumber,
-        firstName: candidateData.firstName,
-        lastName: candidateData.lastName,
-        phoneNumber: candidateData.phoneNumber,
-        category: candidateData.category,
-        position: candidateData.position,
-        region: candidateData.region,
-        subregion: candidateData.subregion,
-        district: candidateData.district,
-        parishwardElectionType: candidateData.parishwardElectionType,
-        constituency: candidateData.constituency,
-        subcounty: candidateData.subcounty,
-        parish: candidateData.parish,
-        municipality: candidateData.municipality,
-        division: candidateData.division,
-        ward: candidateData.ward,
+        ...candidateData,
       };
+
+      if (!editMode) {
+        delete dataToSubmit.id;
+      }
 
       Object.keys(dataToSubmit).forEach((key) => {
         if (dataToSubmit[key as keyof ParishesWardsCandidate] === undefined) {
@@ -200,17 +200,21 @@ const ParishesWardsElections: React.FC = () => {
       } else {
         await addParishesWardsCandidate(dataToSubmit).unwrap();
       }
-      refetch();
+      await refetch();
       resetForm();
-      alert(`Candidate ${editMode ? "updated" : "added"} successfully!`);
-    } catch (error) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} candidate:`,
-        error
-      );
-      alert(
-        `Failed to ${editMode ? "update" : "add"} candidate. Please try again.`
-      );
+      setOperationResult({
+        success: true,
+        message: `Candidate ${editMode ? "updated" : "added"} successfully!`,
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error ||
+          `Failed to ${
+            editMode ? "update" : "add"
+          } candidate. Please try again.`,
+      });
     }
   };
 
@@ -218,18 +222,34 @@ const ParishesWardsElections: React.FC = () => {
     setCandidateData(candidate);
     setElectionType(candidate.parishwardElectionType);
     setEditMode(true);
+
+    // Determine if the candidate is from a city or rural area
+    const selectedDistrict = districts?.find(
+      (d) => d.id.toString() === candidate.district
+    );
+    setHasCity(selectedDistrict?.hasCity || false);
+
+    // Scroll to the form
+    const formElement = document.querySelector("form");
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this candidate?")) {
-      try {
-        await deleteParishesWardsCandidate(id).unwrap();
-        refetch();
-        alert("Candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete candidate:", error);
-        alert("Failed to delete candidate. Please try again.");
-      }
+    try {
+      await deleteParishesWardsCandidate(id).unwrap();
+      await refetch();
+      setOperationResult({
+        success: true,
+        message: "Candidate deleted successfully!",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error || "Failed to delete candidate. Please try again.",
+      });
     }
   };
 
@@ -251,10 +271,13 @@ const ParishesWardsElections: React.FC = () => {
       municipality: undefined,
       division: undefined,
       ward: undefined,
+      cell: undefined,
+      village: undefined,
       parishwardElectionType: "",
     });
     setElectionType("");
     setEditMode(false);
+    setHasCity(false);
   };
 
   const renderFormFields = () => {
@@ -822,6 +845,40 @@ const ParishesWardsElections: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

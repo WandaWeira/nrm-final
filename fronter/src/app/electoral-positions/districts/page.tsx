@@ -17,6 +17,7 @@ import {
   useDeleteDistrictCandidateMutation,
   useGetDistrictCandidatesQuery,
 } from "@/state/api";
+import { Edit, Trash, Plus, AlertCircle, CheckCircle, X } from "lucide-react";
 
 interface DistrictCandidate {
   id: string;
@@ -43,6 +44,11 @@ interface DistrictCandidate {
 }
 
 const DistrictElections: React.FC = () => {
+  const [operationResult, setOperationResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+
   const { data: regions } = useGetRegionsQuery();
   const { data: subregions } = useGetSubregionsQuery();
   const { data: districts } = useGetDistrictsQuery();
@@ -184,7 +190,12 @@ const DistrictElections: React.FC = () => {
     );
 
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(", ")}`);
+      setOperationResult({
+        success: false,
+        message: `Please fill in all required fields: ${missingFields.join(
+          ", "
+        )}`,
+      });
       return;
     }
 
@@ -193,7 +204,6 @@ const DistrictElections: React.FC = () => {
         ...candidateData,
       };
 
-      // Remove the 'id' field when adding a new candidate
       if (!editMode) {
         delete dataToSubmit.id;
       }
@@ -214,15 +224,32 @@ const DistrictElections: React.FC = () => {
       }
       refetch();
       resetForm();
-      alert(`Candidate ${editMode ? "updated" : "added"} successfully!`);
-    } catch (error) {
-      console.error(
-        `Failed to ${editMode ? "update" : "add"} candidate:`,
-        error
-      );
-      alert(
-        `Failed to ${editMode ? "update" : "add"} candidate. Please try again.`
-      );
+      setOperationResult({
+        success: true,
+        message: `Candidate ${editMode ? "updated" : "added"} successfully!`,
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message: error.data?.error || "An error occurred. Please try again.",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDistrictCandidate(id).unwrap();
+      refetch();
+      setOperationResult({
+        success: true,
+        message: "Candidate deleted successfully!",
+      });
+    } catch (error: any) {
+      setOperationResult({
+        success: false,
+        message:
+          error.data?.error || "Failed to delete candidate. Please try again.",
+      });
     }
   };
 
@@ -230,18 +257,17 @@ const DistrictElections: React.FC = () => {
     setCandidateData(candidate);
     setElectionType(candidate.districtElectionType);
     setEditMode(true);
-  };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this candidate?")) {
-      try {
-        await deleteDistrictCandidate(id).unwrap();
-        refetch();
-        alert("Candidate deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete candidate:", error);
-        alert("Failed to delete candidate. Please try again.");
-      }
+    // Determine if the candidate is from a city or rural area
+    const selectedDistrict = districts?.find(
+      (d) => d.id.toString() === candidate.district
+    );
+    setHasCity(selectedDistrict?.hasCity || false);
+
+    // Scroll to the form
+    const formElement = document.querySelector("form");
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -901,6 +927,40 @@ const DistrictElections: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {operationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 rounded-lg w-full max-w-md shadow-2xl relative">
+            <div
+              className={`flex items-center mb-4 ${
+                operationResult.success ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {operationResult.success ? (
+                <CheckCircle className="mr-2 h-6 w-6" />
+              ) : (
+                <AlertCircle className="mr-2 h-6 w-6" />
+              )}
+              <h2 className="text-2xl font-bold">
+                {operationResult.success ? "Success" : "Error"}
+              </h2>
+            </div>
+            <p className="text-lg mb-6">{operationResult.message}</p>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <button
+              onClick={() => setOperationResult(null)}
+              className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-blue-950 transition-colors duration-200"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

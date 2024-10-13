@@ -70,7 +70,7 @@ const SubregionsPage: React.FC = () => {
     Partial<RegionalCoordinator>
   >({});
 
-  const { data: regionalCoordinators } =
+  const { data: regionalCoordinators, refetch: refetchRegionalCoordinators } =
     useGetRegionalCoordinatorsInSubregionQuery(selectedSubregionId || 0, {
       skip: !selectedSubregionId,
     });
@@ -150,6 +150,7 @@ const SubregionsPage: React.FC = () => {
         setIsCoordinatorModalOpen(false);
         setNewCoordinator({});
         setSelectedSubregionId(null); // Close coordinator view
+        refetchRegionalCoordinators();
         setOperationResult({
           success: true,
           message: "Regional Coordinator successfully added",

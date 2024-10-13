@@ -732,20 +732,10 @@ export const api = createApi({
           method: 'DELETE',
         }),
       }),
-
-    // Other endpoints
-    // getDistricts: build.query<UnitModel[], void>({
-    //   query: () => 'districts',
-    //   providesTags: ['Districts'],
-    // }),
     getConstituencies: build.query<ConstituencyModel[], void>({
       query: () => 'constituencies',
       providesTags: ['Constituencies'],
     }),
-    // getSubcounties: build.query<UnitModel[], void>({
-    //   query: () => 'subcounties',
-    //   providesTags: ['Subcounties'],
-    // }),
     getSubcounties: build.query<SubcountyModel[], void>({
       query: () => 'subcounties',
       providesTags: ['Subcounties'],
@@ -1227,6 +1217,11 @@ export const api = createApi({
     ///End of electoral positions apis
 
     // Parish Polling Stations
+    getPollingStations: build.query({
+      query: () => '/polling-stations',
+      providesTags: ['ParishPollingStations'],
+    }),
+
     getParishPollingStations: build.query<PollingStation[], number>({
       query: (parishId) => `parishes/${parishId}/polling-stations`,
       providesTags: ['ParishPollingStations'],
@@ -1684,6 +1679,8 @@ export const {
   useCreateVillageCellOppositionCandidateMutation,
   useUpdateVillageCellOppositionCandidateMutation,
   useDeleteVillageCellOppositionCandidateMutation,
+
+  useGetPollingStationsQuery
 
 
 } = api;

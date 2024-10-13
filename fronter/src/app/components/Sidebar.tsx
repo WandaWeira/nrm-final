@@ -173,7 +173,12 @@ const Sidebar = () => {
   ];
 
   //Reports
-  const reportUnits = ["Administrative-Units", "Electoral-Positions"];
+  const reportUnits = [
+    "Administrative-Units",
+    // "Electoral-Positions",
+    "Polling-Stations",
+    // "Registrars",
+  ];
 
   return (
     <div className={sidebarClassNames}>

@@ -1,50 +1,40 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import {
-  useGetVillagesQuery,
-  useGetCellsQuery,
-  useGetRegionsQuery,
-  useGetSubregionsQuery,
-  useGetDistrictsQuery,
-  useGetConstituenciesQuery,
-  useGetMunicipalitiesQuery,
-  useGetSubcountiesQuery,
-  useGetDivisionsQuery,
+  useGetPollingStationsQuery,
   useGetParishesQuery,
   useGetWardsQuery,
+  useGetSubcountiesQuery,
+  useGetDivisionsQuery,
+  useGetConstituenciesQuery,
+  useGetMunicipalitiesQuery,
+  useGetDistrictsQuery,
+  useGetSubregionsQuery,
+  useGetRegionsQuery,
 } from "@/state/api";
 
-const AdminUnitsReport = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("All");
+const PollingStationsTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const itemsPerPage = 10;
 
-  const { data: villages = [] } = useGetVillagesQuery();
-  const { data: cells = [] } = useGetCellsQuery();
-  const { data: regions = [] } = useGetRegionsQuery();
-  const { data: subregions = [] } = useGetSubregionsQuery();
-  const { data: districts = [] } = useGetDistrictsQuery();
-  const { data: constituencies = [] } = useGetConstituenciesQuery();
-  const { data: municipalities = [] } = useGetMunicipalitiesQuery();
-  const { data: subcounties = [] } = useGetSubcountiesQuery();
-  const { data: divisions = [] } = useGetDivisionsQuery();
+  const { data: pollingStations = [] } = useGetPollingStationsQuery({});
   const { data: parishes = [] } = useGetParishesQuery();
   const { data: wards = [] } = useGetWardsQuery();
+  const { data: subcounties = [] } = useGetSubcountiesQuery();
+  const { data: divisions = [] } = useGetDivisionsQuery();
+  const { data: constituencies = [] } = useGetConstituenciesQuery();
+  const { data: municipalities = [] } = useGetMunicipalitiesQuery();
+  const { data: districts = [] } = useGetDistrictsQuery();
+  const { data: subregions = [] } = useGetSubregionsQuery();
+  const { data: regions = [] } = useGetRegionsQuery();
 
-  const allUnits = useMemo(() => {
-    return [
-      ...villages.map((village) => ({ ...village, type: "Village" })),
-      ...cells.map((cell) => ({ ...cell, type: "Cell" })),
-    ];
-  }, [villages, cells]);
+  const getHierarchy = (pollingStation: any) => {
+    const parish = parishes.find((p) => p.id === pollingStation.parishId);
+    const ward = wards.find((w) => w.id === pollingStation.wardId);
 
-  const getHierarchy = (unit: any) => {
-    const parish = parishes.find((p) => p.id === unit.parishId);
-    const ward = wards.find((w) => w.id === unit.wardId);
-
-    const subcounty = subcounties.find((s) => s.id === parish?.subcountyId);
+    const subcounty = subcounties.find((sc) => sc.id === parish?.subcountyId);
     const division = divisions.find((d) => d.id === ward?.divisionId);
 
     const constituency = constituencies.find(
@@ -58,9 +48,7 @@ const AdminUnitsReport = () => {
       (d) =>
         d.id === constituency?.districtId || d.id === municipality?.districtId
     );
-
-    const subregion = subregions.find((s) => s.id === district?.subregionId);
-
+    const subregion = subregions.find((sr) => sr.id === district?.subregionId);
     const region = regions.find((r) => r.id === subregion?.regionId);
 
     return {
@@ -70,45 +58,41 @@ const AdminUnitsReport = () => {
       constituencyMunicipality: constituency?.name || municipality?.name || "",
       subcountyDivision: subcounty?.name || division?.name || "",
       parishWard: parish?.name || ward?.name || "",
-      villageCell: unit.name,
+      pollingStation: pollingStation.name,
     };
   };
 
-  const filteredUnits = useMemo(() => {
-    return allUnits.filter((unit) => {
-      const hierarchy = getHierarchy(unit);
-      return (
-        (filterType === "All" || unit.type === filterType) &&
-        (unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          hierarchy.region.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          hierarchy.district.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+  const filteredPollingStations = useMemo(() => {
+    return pollingStations.filter((ps: any) => {
+      const hierarchy = getHierarchy(ps);
+      const searchableString = Object.values(hierarchy).join(" ").toLowerCase();
+      return searchableString.includes(searchTerm.toLowerCase());
     });
-  }, [allUnits, filterType, searchTerm]);
+  }, [pollingStations, searchTerm]);
 
-  const paginatedUnits = useMemo(() => {
+  const paginatedPollingStations = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUnits.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUnits, currentPage]);
+    return filteredPollingStations.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredPollingStations, currentPage]);
 
-  const totalPages = Math.ceil(filteredUnits.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredPollingStations.length / itemsPerPage);
 
   const generateReport = async () => {
     setIsGenerating(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulating async operation
 
-    let content = "Administrative Units Report\n\n";
+    let content = "Polling Stations Report\n\n";
     content +=
-      "Region,Subregion,District,Constituency/Municipality,Subcounty/Division,Parish/Ward,Village/Cell\n";
-    filteredUnits.forEach((unit) => {
-      const hierarchy = getHierarchy(unit);
-      content += `${hierarchy.region},${hierarchy.subregion},${hierarchy.district},${hierarchy.constituencyMunicipality},${hierarchy.subcountyDivision},${hierarchy.parishWard},${hierarchy.villageCell}\n`;
+      "Region,Subregion,District,Constituency/Municipality,Subcounty/Division,Parish/Ward,Polling Station\n";
+    filteredPollingStations.forEach((ps: any) => {
+      const hierarchy = getHierarchy(ps);
+      content += `${hierarchy.region},${hierarchy.subregion},${hierarchy.district},${hierarchy.constituencyMunicipality},${hierarchy.subcountyDivision},${hierarchy.parishWard},${hierarchy.pollingStation}\n`;
     });
 
     const blob = new Blob([content], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "administrative_units_report.csv";
+    link.download = "polling_stations_report.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -118,24 +102,16 @@ const AdminUnitsReport = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Administrative Units Report</h1>
+      <h1 className="text-2xl font-bold mb-6">Polling Stations</h1>
+
       <div className="flex flex-wrap gap-4 mb-6">
         <input
           type="text"
           placeholder="Search..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="px-4 py-2 border rounded"
+          className="px-4 py-2 border rounded flex-grow"
         />
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="px-4 py-2 border rounded"
-        >
-          <option value="All">All Types</option>
-          <option value="Village">Villages</option>
-          <option value="Cell">Cells</option>
-        </select>
         <button
           onClick={generateReport}
           disabled={isGenerating}
@@ -201,15 +177,15 @@ const AdminUnitsReport = () => {
                 Parish/Ward
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Village/Cell
+                Polling Station
               </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {paginatedUnits.map((unit) => {
-              const hierarchy = getHierarchy(unit);
+            {paginatedPollingStations.map((ps: any) => {
+              const hierarchy = getHierarchy(ps);
               return (
-                <tr key={`${unit.type}-${unit.id}`}>
+                <tr key={ps.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {hierarchy.region}
                   </td>
@@ -229,7 +205,7 @@ const AdminUnitsReport = () => {
                     {hierarchy.parishWard}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {hierarchy.villageCell}
+                    {hierarchy.pollingStation}
                   </td>
                 </tr>
               );
@@ -241,8 +217,8 @@ const AdminUnitsReport = () => {
       <div className="mt-4 flex justify-between items-center">
         <div>
           Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-          {Math.min(currentPage * itemsPerPage, filteredUnits.length)} of{" "}
-          {filteredUnits.length} entries
+          {Math.min(currentPage * itemsPerPage, filteredPollingStations.length)}{" "}
+          of {filteredPollingStations.length} entries
         </div>
         <div className="flex gap-2">
           <button
@@ -267,4 +243,4 @@ const AdminUnitsReport = () => {
   );
 };
 
-export default AdminUnitsReport;
+export default PollingStationsTable;

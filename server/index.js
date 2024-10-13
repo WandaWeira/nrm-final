@@ -57,6 +57,9 @@ app.use("/villages", villageRoutes);
 const ElectoralPositionsRoutes = require("./routes/ElectoralPositionsRoutes");
 app.use("/electoral-positions", ElectoralPositionsRoutes);
 
+const PollingStationRoutes = require("./routes/PollingStation");
+app.use("/polling-stations", PollingStationRoutes);
+
 db.sequelize.sync().then(() => {
   app.listen(8000, () => {
     console.log("Server is running on port 8000");

@@ -13,6 +13,7 @@ import {
   useGetParishesQuery,
   useGetWardsQuery,
 } from "@/state/api";
+import PollingStationsTable from "@/app/components/PollingStationsTable";
 
 const AdminUnitsReport = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -263,6 +264,7 @@ const AdminUnitsReport = () => {
           </button>
         </div>
       </div>
+      {/* <PollingStationsTable /> */}
     </div>
   );
 };

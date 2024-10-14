@@ -77,12 +77,12 @@ const RegistrarsReport = () => {
   }));
 
   const allRegistrars = useMemo(() => {
-    const mapRegistrars = (units: any, registrars: any, unitType:any) =>
+    const mapRegistrars = (units: any, registrars: any, unitType: any) =>
       units.flatMap(
         (unit: any) =>
           registrars
-            .find((r:any) => r.unitId === unit.id)
-            ?.query.data?.map((registrar:any) => ({
+            .find((r: any) => r.unitId === unit.id)
+            ?.query.data?.map((registrar: any) => ({
               ...registrar,
               unitType,
               unitName: unit.name,

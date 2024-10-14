@@ -177,7 +177,7 @@ const Sidebar = () => {
     "Administrative-Units",
     // "Electoral-Positions",
     "Polling-Stations",
-    // "Registrars",
+    "Registrars",
   ];
 
   return (
